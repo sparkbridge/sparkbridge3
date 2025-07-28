@@ -1,0 +1,8 @@
+{
+    "name": "motd",
+    "version": "1.0.1",
+    "author": "YourName",
+    "description": "我的世界服务器查询",
+    "main": "index.js",
+    "hasConfig": true
+}

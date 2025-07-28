@@ -1,0 +1,8 @@
+{
+    "name": "ping-pong",
+    "version": "1.0.1",
+    "author": "YourName",
+    "description": "一個可自訂回覆內容的 Ping-Pong 插件。",
+    "main": "index.js",
+    "hasConfig": true
+}

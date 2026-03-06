@@ -46,6 +46,7 @@ spark.web.registerApi("POST","/regexengine/save",(req,res)=>{
     const data = req.body;
     // console.log(data);
     rules = data;
+    splitRegex();
     fileObj.write('rules.json', rules);
     res.json({code:200,message:"保存成功"});
 },false);
@@ -58,6 +59,24 @@ spark.on("config.update.sb3_regex", (key, val) => {
     fileObj.write('config.json', conf); // 持久化保存
     logger.info(`基础配置已更新并保存本地: ${key} -> ${val}`);
 });
+
+let messageRegex = [];
+let eventRegex = [];
+
+// 分割消息触发和事件触发
+function splitRegex(){
+    messageRegex.length = 0;
+    eventRegex.length = 0;
+    rules.forEach(rule => {
+        if (rule.triggerType === 'message') {
+            messageRegex.push(rule);
+        } else if (rule.triggerType === 'event') {
+            eventRegex.push(rule)
+        }
+    })
+}
+
+splitRegex();
 
 const customActionsRegistry = {};
 
@@ -78,7 +97,7 @@ function registerAction(actionType, handlerFunction) {
 // 将该函数挂载到 sharedEnv 变量池中
 if (spark.env && spark.env.set) {
     spark.env.set('regex.register_action', registerAction);
-    console.log(spark.env.get("regex.register_action"));
+    // console.log(spark.env.get("regex.register_action"));
     logger.info('已将自定义动作注册接口挂载到全局变量池: regex.register_action');
 }
 
@@ -111,64 +130,61 @@ function parseVariables(text, pack, context) {
 // ==========================================
 // 模块 C: 异步动作执行器
 // ==========================================
-async function executeActions(actions, pack) {
-    // 动作执行上下文，现在它是一个动态的变量池
+/**
+ * 执行动作序列
+ * @param {Array} actions 动作列表
+ * @param {Object} pack 原始消息包
+ * @param {Array} matchResult 正则匹配结果数组
+ */
+async function executeActions(actions, pack, matchResult = []) {
     let actionContext = {
-        result: '' // 保留默认的 $result 供 executeCommand 等使用
+        result: ''
     };
+
+    // 【核心修改】将正则捕获组注入到上下文中
+    // 这样上下文中就会有 context['0'], context['1'] 等属性
+    if (matchResult && matchResult.length > 0) {
+        matchResult.forEach((val, index) => {
+            actionContext[index.toString()] = val;
+        });
+    }
 
     for (const action of actions) {
         try {
-            // 1. 优先检查是否为其他插件注册的自定义动作
             if (customActionsRegistry[action.type]) {
-                // 此时也可以用 parseVariables 解析第三方动作的 params (这样第三方插件也能接收动态参数)
                 const parsedParams = parseVariables(action.params, pack, actionContext);
-
-                // 执行第三方自定义动作
                 const ret = await customActionsRegistry[action.type](parsedParams, pack, actionContext);
 
-                // 【核心修改】判断返回值类型
                 if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
-                    // 如果返回的是 {weather: "晴天", location: "美国"} 这样的对象
-                    // 直接将键值对合并到 actionContext 中
                     Object.assign(actionContext, ret);
                 } else if (ret !== undefined) {
-                    // 如果只返回了字符串或数字，按老规矩存入 $result
                     actionContext.result = String(ret);
                 }
                 continue;
             }
 
-            // 2. 原生内置动作
             switch (action.type) {
                 case 'replyText': {
-                    // 【核心修改】使用通用的变量替换引擎
                     let content = parseVariables(action.params, pack, actionContext);
                     await spark.QClient.sendGroupMsg(pack.group_id, content);
                     break;
                 }
-
                 case 'deleteMessage': {
                     await spark.adapter.deleteMsg(pack.message_id);
                     break;
                 }
-
                 case 'muteUser': {
-                    // 禁言时长也支持解析变量了，比如第三方插件返回了一个 $punishTime
                     const parsedDuration = parseVariables(action.params, pack, actionContext);
                     const duration = parseInt(parsedDuration) || 600;
                     await spark.adapter.sendGroupBan(pack.group_id, pack.user_id, duration);
                     break;
                 }
-
                 case 'executeCommand': {
-                    // 命令也支持动态变量替换，比如 list $targetPlayer
                     let parsedCmd = parseVariables(action.params, pack, actionContext);
                     let res = mc.runcmdEx(parsedCmd);
                     actionContext.result = res.output || (res.success ? "执行成功" : "执行失败");
                     break;
                 }
-
                 default:
                     console.warn(`[正则模块] 未知动作类型: ${action.type}`);
             }
@@ -178,30 +194,65 @@ async function executeActions(actions, pack) {
     }
 }
 
+
 /**
- * 校验规则条件
+ * 校验规则条件 (多重身份独立验证)
  * @param {Array} conditions 条件列表
- * @param {Object} pack 消息包
+ * @param {Object} pack 消息包/事件包
  */
 function checkConditions(conditions, pack) {
     if (!conditions || conditions.length === 0) return true;
 
     return conditions.every(cond => {
-        let actualValue;
-        // 映射字段名
-        if (cond.field === 'userRole') actualValue = pack.sender ? pack.sender.role : 'member';
-        else if (cond.field === 'userId') actualValue = pack.user_id.toString();
-        else if (cond.field === 'groupId') actualValue = pack.group_id.toString();
-        else actualValue = pack[cond.field];
+        // --- 特殊处理：userRole 权限字段 ---
+        if (cond.field === 'userRole') {
+            const userRoles = []; // 用户当前拥有的身份集合
 
-        switch (cond.operator) {
-            case '==': return actualValue == cond.value;
-            case '!=': return actualValue != cond.value;
-            case '>': return actualValue > cond.value;
-            case '<': return actualValue < cond.value;
-            case 'includes': return actualValue.includes(cond.value);
-            default: return false;
+            // 1. 获取群内本地身份 (owner, admin, member)
+            if (pack.sender && pack.sender.role) {
+                userRoles.push(pack.sender.role);
+            } else {
+                userRoles.push('member');
+            }
+
+            // 2. 获取全局最高管理身份 (sparkadmin)
+            if (spark.env.get("admin_qq").includes(Number(pack.user_id))) {
+                userRoles.push('sparkadmin');
+            }
+
+            // 只要用户的身份集合里，包含了配置里要求的那个身份就行
+            if (cond.operator === '==') return userRoles.includes(cond.value);
+            // 如果是不等于，就要求用户的身份集合里【不能】有那个身份
+            if (cond.operator === '!=') return !userRoles.includes(cond.value);
+
+            return false;
         }
+
+        // --- 常规处理：其他普通字段 ---
+        let actualValue = '';
+        if (cond.field === 'userId') {
+            actualValue = (pack.user_id || '').toString();
+        } else if (cond.field === 'groupId') {
+            actualValue = (pack.group_id || '').toString();
+        } else {
+            actualValue = pack[cond.field] !== undefined ? String(pack[cond.field]) : '';
+        }
+
+        // --- 核心判定 ---
+        if (cond.operator === '==') return actualValue == cond.value;
+        if (cond.operator === '!=') return actualValue != cond.value;
+        if (cond.operator === 'includes') return actualValue.includes(cond.value);
+        if (cond.operator === 'matches') {
+            try {
+                const regex = new RegExp(cond.value, 'i');
+                return regex.test(actualValue);
+            } catch (e) {
+                console.error(`[正则模块] 条件匹配正则错误 (${cond.value}):`, e.message);
+                return false;
+            }
+        }
+
+        return false;
     });
 }
 
@@ -209,42 +260,146 @@ function checkConditions(conditions, pack) {
 // 模块 D: 核心匹配引擎
 // ==========================================
 spark.on('message.group.normal', async (pack) => {
-    // console.log(pack);
-    // 检查配置项中的 enable 开关
     if (!conf.enable || pack.post_type !== 'message' || pack.message_type !== 'group') return;
 
     const msgText = pack.raw_message.trim();
 
-    // 2. 遍历规则库
-    for (const rule of rules) {
-        // 仅处理触发类型为 message 的规则
+    for (const rule of messageRegex) {
         if (!rule.enabled || rule.triggerType !== 'message') continue;
 
         try {
-            // 3. 正则匹配
             const regex = new RegExp(rule.pattern, rule.flags || 'g');
-            if (regex.test(msgText)) {
 
-                // 4. 条件检查（如排除管理员等）
+            // 【核心修改】使用 exec 获取匹配结果数组
+            // matchResult[0] 是完整匹配内容，matchResult[1] 是第一个括号的捕获组，以此类推
+            const matchResult = regex.exec(msgText);
+
+            if (matchResult) {
                 if (!checkConditions(rule.conditions, pack)) {
                     continue;
                 }
 
-                console.log(`[正则模块] 命中规则: ${rule.name}`);
+                // console.log(`[正则模块] 命中规则: ${rule.name}`);
 
-                // 5. 执行动作
-                await executeActions(rule.actions, pack);
+                // 【核心修改】将 matchResult 传递给执行器
+                await executeActions(rule.actions, pack, matchResult);
 
-                // 如果设置了拦截，则停止匹配后续规则
                 if (rule.block) break;
             }
         } catch (e) {
-            // 使用 Spark 注入的 logger
             console.error(`规则 [${rule.name}] 的正则表达式错误: ${e.message}`);
         }
     }
 });
 
-spark.on('system.request_reload', () => {
-    logger.info("正则规则已热重载完毕。");
+/**
+ * 通用事件处理引擎
+ * @param {string} currentEventType 当前触发的事件类型 (如 'group.member_join')
+ * @param {Object} pack 原始事件数据包
+ */
+async function handleEvent(currentEventType, pack) {
+    // 1. 全局开关检查
+    if (!conf.enable) return;
+
+    // 2. 数据包容错处理 (防止替换变量时由于缺少字段报错)
+    // 很多 Notice 事件没有 sender 对象，我们为其提供一个安全的默认值
+    if (!pack.sender) {
+        pack.sender = {
+            role: 'member',
+            nickname: pack.user_id ? pack.user_id.toString() : '未知用户'
+        };
+    }
+
+    // 3. 遍历规则库
+    for (const rule of rules) {
+        // 过滤出启用、类型为 event 且事件类型匹配的规则
+        if (!rule.enabled || rule.triggerType !== 'event' || rule.eventType !== currentEventType) {
+            continue;
+        }
+
+        try {
+            let matchResult = [];
+
+            // 4. 正则匹配 (对于事件，通常用于精准匹配特定的 QQ 号，非必填)
+            if (rule.pattern && rule.pattern.trim() !== '') {
+                const regex = new RegExp(rule.pattern, rule.flags || 'ig');
+                // 以 user_id 作为正则匹配的默认目标
+                const targetStr = pack.user_id ? pack.user_id.toString() : '';
+                matchResult = regex.exec(targetStr);
+
+                if (!matchResult) continue; // 正则未命中，跳过此规则
+            } else {
+                // 如果没有写正则，默认将 $0 设为 user_id
+                matchResult = [pack.user_id ? pack.user_id.toString() : ''];
+            }
+
+            if(rule.eventType === 'server.player_chat'){
+                matchResult = [pack.raw_message];
+            }
+
+            // 5. 条件校验 (复用原有的 checkConditions)
+            if (!checkConditions(rule.conditions, pack)) {
+                continue;
+            }
+
+            // console.log(`[正则模块] 触发事件规则: [${rule.name}] (${currentEventType})`);
+
+            // 6. 执行动作序列 (复用原有的 executeActions)
+            await executeActions(rule.actions, pack, matchResult);
+
+            // 7. 阻断后续规则
+            if (rule.block) break;
+
+        } catch (e) {
+            console.error(`[正则模块] 事件规则 [${rule.name}] 执行失败: ${e.message}`);
+        }
+    }
+}
+
+spark.on('notice.group.increase', async (pack) => {
+    await handleEvent('group.member_join', pack);
 });
+
+spark.on('notice.group.decrease', async (pack) => {
+    await handleEvent('group.member_leave', pack);
+});
+
+// 4. 监听: 甚至可以兼容 Minecraft 的进服事件！
+if (typeof mc !== 'undefined') {
+    mc.listen("onJoin", (player) => {
+        // 构造一个兼容 QQ pack 格式的伪装包
+        const mockPack = {
+            user_id: player.realName || player.name,
+            group_id: spark.env.get("main_group"), // 如果需要推送到QQ群，配置里写个默认群号
+            sender: { nickname: player.realName, role: 'member' }
+        };
+
+        // 交给同一个通用函数处理！
+        handleEvent('server.player_join', mockPack);
+    });
+    mc.listen("onLeft", (player) => {
+        // 构造一个兼容 QQ pack 格式的伪装包
+        const mockPack = {
+            user_id: player.realName || player.name,
+            group_id: spark.env.get("main_group"), // 如果需要推送到QQ群，配置里写个默认群号
+            sender: { nickname: player.realName, role: 'member' }
+        };
+
+        // 交给同一个通用函数处理！
+        handleEvent('server.player_left', mockPack);
+    })
+    mc.listen("onChat", (player, message) => {
+        // 构造一个兼容 QQ pack 格式的伪装包
+        const mockPack = {
+            user_id: player.realName || player.name,
+            group_id: spark.env.get("main_group"), // 如果需要推送到QQ群，配置里写个默认群号
+            raw_message: message,
+            sender: { nickname: player.realName, role: 'member' }
+        }
+        handleEvent('server.player_chat', mockPack);
+    })
+}
+
+// spark.on('system.request_reload', () => {
+//     logger.info("正则规则已热重载完毕。");
+// });

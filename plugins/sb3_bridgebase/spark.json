@@ -1,0 +1,14 @@
+{
+    "name": "bridgebase",
+    "author": "lition",
+    "version": [
+        0,
+        0,
+        1
+    ],
+    "desc": "sb2到sb3适配器，转换一些特殊api",
+    "loadmode": "hybrid",
+    "permission": "core",
+    "priority": "base",
+    "load": true
+}

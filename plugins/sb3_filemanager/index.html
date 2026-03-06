@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkBridge3 - 文件管理器</title>
+    <link rel="stylesheet" href="https://jsd.onmicrosoft.cn/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        /* 1. 全局盒子模型重置（规范要求） */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 2. Body基础样式（核心规范）- 移除默认内边距，占满全屏 */
+        body {
+            background-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+            /* 占满视口高度 */
+            height: 100vh;
+            /* 固定高度为视口高度 */
+            overflow: hidden;
+            /* 禁止页面整体滚动 */
+        }
+
+        /* 3. 滚动条美化（规范要求） */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* 4. 核心样式变量 */
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --border: #e2e8f0;
+            --text-sub: #94a3b8;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.02);
+            --radius-card: 24px;
+            --radius-button: 12px;
+            --mono-font: 'Fira Code', monospace;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+
+        /* 5. 加载状态 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #1e293b;
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 6. 主容器 - 占满全屏高度 */
+        .container {
+            width: 100%;
+            height: 100vh;
+            /* 占满视口高度 */
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+            /* 仅保留少量内边距，最大化内容高度 */
+        }
+
+        /* 7. 工具栏 - 固定高度，不挤压内容 */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            height: 60px;
+            /* 固定工具栏高度 */
+            flex-shrink: 0;
+            /* 禁止收缩 */
+        }
+
+        .path-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-button);
+            padding: 6px 12px;
+            background: transparent;
+            color: #1e293b;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: var(--shadow-card);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .current-path {
+            font-family: var(--mono-font);
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        /* 8. 主内容区 - 核心修改：高度占满剩余空间 */
+        .content {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+            /* 占满容器剩余所有高度 */
+            height: calc(100% - 60px - 16px);
+            /* 减去工具栏高度和间距 */
+        }
+
+        /* 9. 文件列表 - 高度占满内容区 */
+        .file-list-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 16px;
+            overflow-y: auto;
+            width: 320px;
+            /* 固定左侧宽度 */
+            flex-shrink: 0;
+            /* 禁止左侧收缩 */
+            height: 100%;
+            /* 占满内容区高度 */
+        }
+
+        .list-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 12px 0;
+            color: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: var(--radius-button);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 14px;
+        }
+
+        .file-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .file-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-item .folder-icon {
+            color: var(--primary);
+        }
+
+        .file-item .file-icon {
+            color: var(--text-sub);
+        }
+
+        .file-item .size {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-left: auto;
+            font-family: var(--mono-font);
+        }
+
+        /* 10. 编辑器区域 - 核心修改：高度最大化 */
+        .editor-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            /* 占满剩余宽度 */
+            height: 100%;
+            /* 占满内容区高度 */
+            min-height: 0;
+            /* 解决flex子元素高度溢出问题 */
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+            /* 禁止头部收缩 */
+            height: auto;
+            /* 自适应高度 */
+        }
+
+        .editor-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0;
+            font-family: var(--mono-font);
+        }
+
+        .editor-meta {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 8px;
+            font-size: 18px;
+            transition: color 0.2s ease;
+        }
+
+        .close-btn:hover {
+            color: #1e293b;
+        }
+
+        .code-editor {
+            width: 100%;
+            flex: 1;
+            /* 占满编辑器剩余所有高度 */
+            border: 1px solid var(--border);
+            border-radius: var(--radius-button);
+            padding: 16px;
+            font-family: var(--mono-font);
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s ease;
+            line-height: 1.6;
+            height: calc(100% - 60px);
+            /* 减去头部高度 */
+        }
+
+        .code-editor:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        /* 11. 空状态 - 高度占满内容区 */
+        .empty-state {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            flex: 1;
+            height: 100%;
+            /* 占满内容区高度 */
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            color: var(--text-sub);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* 12. 模态框（新建文件/文件夹） */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+        }
+
+        .modal {
+            background-color: white;
+            border-radius: var(--radius-card);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+            color: #1e293b;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .form-input {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-button);
+            padding: 8px 12px;
+            font-size: 14px;
+            font-family: var(--mono-font);
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-cancel {
+            border-color: var(--border);
+            color: #1e293b;
+        }
+
+        .btn-confirm {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* 13. 外部链接 */
+        .external-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .external-link:hover {
+            text-decoration: underline;
+        }
+
+        .link-container {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 加载状态 -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载文件列表中...</div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container" id="mainContainer" style="display: none;">
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <div class="path-group">
+                <button class="btn" id="backBtn">
+                    <i class="fa fa-arrow-left"></i> 返回
+                </button>
+                <span class="current-path" id="currentPath">/</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="newFolderBtn">
+                    <i class="fa fa-folder"></i> 新建文件夹
+                </button>
+                <button class="btn" id="newFileBtn">
+                    <i class="fa fa-file"></i> 新建文件
+                </button>
+                <button class="btn btn-primary" id="saveBtn" style="display: none;">
+                    <i class="fa fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="content">
+            <!-- 左侧文件列表 -->
+            <div class="file-list-container">
+                <h3 class="list-title">
+                    文件列表
+                    <span style="font-size: 12px; color: var(--text-sub); font-weight: normal;" id="fileCount">0
+                        个项目</span>
+                </h3>
+                <div id="fileList" class="file-list">
+                    <!-- 动态生成文件项 -->
+                </div>
+                <div class="link-container">
+                    <a href="https://docs.sparkbridge3.com/file-manager" class="external-link" target="_blank">
+                        <i class="fa fa-question-circle"></i> 使用帮助
+                    </a>
+                </div>
+            </div>
+
+            <!-- 右侧编辑器 -->
+            <div class="editor-container" id="editorContainer">
+                <div class="editor-header">
+                    <div>
+                        <h3 class="editor-title" id="editorTitle">未选择文件</h3>
+                        <div class="editor-meta" id="editorMeta"></div>
+                    </div>
+                    <button class="close-btn" id="closeEditorBtn">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <textarea class="code-editor" id="codeEditor" placeholder="文件内容..."></textarea>
+            </div>
+
+            <!-- 空状态 -->
+            <div class="empty-state" id="emptyState">
+                <i class="fa fa-file-text-o empty-icon"></i>
+                <p class="empty-text">选择文件进行编辑</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹模态框 -->
+    <div class="modal-overlay" id="newFolderModal">
+        <div class="modal">
+            <h3 class="modal-title">新建文件夹</h3>
+            <div class="modal-form">
+                <div class="form-group">
+                    <label class="form-label">文件夹名称</label>
+                    <input type="text" class="form-input" id="folderNameInput" placeholder="请输入文件夹名称（如：src）">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">父目录</label>
+                    <input type="text" class="form-input" id="folderParentPath" readonly>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="cancelFolderBtn">取消</button>
+                <button class="btn btn-confirm" id="confirmFolderBtn">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件模态框 -->
+    <div class="modal-overlay" id="newFileModal">
+        <div class="modal">
+            <h3 class="modal-title">新建文件</h3>
+            <div class="modal-form">
+                <div class="form-group">
+                    <label class="form-label">文件名称</label>
+                    <input type="text" class="form-input" id="fileNameInput" placeholder="请输入文件名称（如：config.json）">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">父目录</label>
+                    <input type="text" class="form-input" id="fileParentPath" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">初始内容（可选）</label>
+                    <textarea class="form-input" id="fileContentInput" rows="4" placeholder="请输入文件初始内容..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="cancelFileBtn">取消</button>
+                <button class="btn btn-confirm" id="confirmFileBtn">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================
+        // 1. 全局状态管理
+        // ========================
+        const state = {
+            currentPath: '/',
+            fileList: [],
+            activeFile: null,
+            isLoading: false
+        };
+
+        // ========================
+        // 2. 主系统通信工具函数（规范要求）
+        // ========================
+        /**
+         * 调用主系统的提示框
+         * @param {string} msg 提示信息
+         * @param {string} type 类型：success/error/warning/info
+         */
+        function showNotice(msg, type = 'info') {
+            if (window !== window.top) {
+                window.parent.postMessage({
+                    action: 'SHOW_NOTICE',
+                    payload: { msg: msg, type: type }
+                }, '*');
+            } else {
+                // 单独调试时的自定义提示框
+                const notice = document.createElement('div');
+                notice.style.position = 'fixed';
+                notice.style.top = '20px';
+                notice.style.right = '20px';
+                notice.style.padding = '12px 24px';
+                notice.style.borderRadius = '8px';
+                notice.style.color = 'white';
+                notice.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                notice.style.zIndex = '9999';
+                notice.style.transition = 'all 0.3s ease';
+
+                // 根据类型设置背景色
+                const bgColors = {
+                    success: '#10b981',
+                    error: '#ef4444',
+                    warning: '#f59e0b',
+                    info: '#3b82f6'
+                };
+                notice.style.backgroundColor = bgColors[type] || bgColors.info;
+                notice.textContent = msg;
+
+                document.body.appendChild(notice);
+
+                // 自动消失
+                setTimeout(() => {
+                    notice.style.opacity = '0';
+                    notice.style.transform = 'translateY(-10px)';
+                    setTimeout(() => notice.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        /**
+         * 显示加载状态
+         * @param {boolean} show 是否显示
+         * @param {string} text 加载文本
+         */
+        function showLoading(show, text = '加载中...') {
+            const loadingEl = document.getElementById('loading');
+            const loadingText = loadingEl.querySelector('.loading-text');
+
+            state.isLoading = show;
+            loadingEl.style.display = show ? 'flex' : 'none';
+            loadingText.textContent = text;
+        }
+
+        // ========================
+        // 3. 工具函数 - 浏览器兼容
+        // ========================
+        /**
+         * 计算字符串的字节长度（兼容浏览器）
+         * @param {string} str 要计算的字符串
+         * @param {string} encoding 编码格式（仅支持 utf8）
+         * @returns {number} 字节长度
+         */
+        function calculateByteLength(str, encoding = 'utf8') {
+            if (encoding !== 'utf8') {
+                throw new Error('仅支持 UTF-8 编码');
+            }
+
+            // 浏览器环境下计算 UTF-8 字节长度
+            let byteLength = 0;
+            for (let i = 0; i < str.length; i++) {
+                const charCode = str.charCodeAt(i);
+
+                if (charCode <= 0x7F) {
+                    // 单字节字符 (0-127)
+                    byteLength += 1;
+                } else if (charCode <= 0x7FF) {
+                    // 双字节字符 (128-2047)
+                    byteLength += 2;
+                } else if (charCode <= 0xFFFF) {
+                    // 三字节字符 (2048-65535)
+                    byteLength += 3;
+                } else {
+                    // 四字节字符 (65536+)
+                    byteLength += 4;
+                }
+            }
+
+            return byteLength;
+        }
+
+        // ========================
+        // 4. API 请求函数
+        // ========================
+        /**
+         * 请求基础配置
+         */
+        const API_BASE = '/api/plugin/filemanager';
+        const request = {
+            /**
+             * GET 请求
+             * @param {string} url 接口路径
+             * @param {Object} params 查询参数
+             * @returns {Promise<Object>} 响应数据
+             */
+            get: async (url, params = {}) => {
+                const queryString = new URLSearchParams(params).toString();
+                const fullUrl = `${API_BASE}${url}${queryString ? '?' + queryString : ''}`;
+
+                try {
+                    const response = await fetch(fullUrl);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('GET请求失败：', error);
+                    return { code: 500, message: '网络请求失败，请检查连接' };
+                }
+            },
+
+            /**
+             * POST 请求
+             * @param {string} url 接口路径
+             * @param {Object} data 请求体
+             * @returns {Promise<Object>} 响应数据
+             */
+            post: async (url, data = {}) => {
+                try {
+                    const response = await fetch(`${API_BASE}${url}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    const resData = await response.json();
+                    return resData;
+                } catch (error) {
+                    console.error('POST请求失败：', error);
+                    return { code: 500, message: '网络请求失败，请检查连接' };
+                }
+            }
+        };
+
+        /**
+         * 获取文件列表
+         * @param {string} path 目录路径
+         * @returns {Promise<Array>} 文件列表
+         */
+        async function getFileList(path = '/') {
+            showLoading(true, '加载文件列表中...');
+
+            try {
+                const result = await request.get('/list', { path });
+
+                if (result.code === 200) {
+                    state.fileList = result.data;
+                    state.currentPath = result.currentPath || path;
+
+                    // 更新UI
+                    renderFileList();
+                    document.getElementById('currentPath').textContent = state.currentPath;
+                    document.getElementById('fileCount').textContent = `${state.fileList.length} 个项目`;
+
+                    showLoading(false);
+                    return result.data;
+                } else {
+                    showLoading(false);
+                    showNotice(result.message, 'error');
+                    return [];
+                }
+            } catch (error) {
+                showLoading(false);
+                showNotice('获取文件列表失败', 'error');
+                return [];
+            }
+        }
+
+        /**
+         * 读取文件内容
+         * @param {string} path 文件路径
+         * @returns {Promise<Object>} 文件内容和元信息
+         */
+        async function readFileContent(path) {
+            showLoading(true, '读取文件内容中...');
+
+            try {
+                const result = await request.get('/read', { path });
+
+                if (result.code === 200) {
+                    showLoading(false);
+                    return result.data;
+                } else {
+                    showLoading(false);
+                    showNotice(result.message, 'error');
+                    return null;
+                }
+            } catch (error) {
+                showLoading(false);
+                showNotice('读取文件失败', 'error');
+                return null;
+            }
+        }
+
+        /**
+         * 保存文件内容
+         * @param {string} path 文件路径
+         * @param {string} content 文件内容
+         * @returns {Promise<boolean>} 是否保存成功
+         */
+        async function saveFileContent(path, content) {
+            showLoading(true, '保存文件中...');
+
+            try {
+                const result = await request.post('/save', { path, content });
+
+                if (result.code === 200) {
+                    showLoading(false);
+                    showNotice(result.message, 'success');
+                    // 重新加载文件列表
+                    await getFileList(state.currentPath);
+                    return true;
+                } else {
+                    showLoading(false);
+                    showNotice(result.message, 'error');
+                    return false;
+                }
+            } catch (error) {
+                showLoading(false);
+                showNotice('保存文件失败', 'error');
+                return false;
+            }
+        }
+
+        /**
+         * 新建文件夹
+         * @param {string} parentPath 父目录路径
+         * @param {string} name 文件夹名称
+         * @returns {Promise<boolean>} 是否创建成功
+         */
+        async function createFolder(parentPath, name) {
+            showLoading(true, '创建文件夹中...');
+
+            try {
+                const result = await request.post('/mkdir', { path: parentPath, name });
+
+                if (result.code === 200) {
+                    showLoading(false);
+                    showNotice(result.message, 'success');
+                    // 重新加载文件列表
+                    await getFileList(state.currentPath);
+                    return true;
+                } else {
+                    showLoading(false);
+                    showNotice(result.message, 'error');
+                    return false;
+                }
+            } catch (error) {
+                showLoading(false);
+                showNotice('创建文件夹失败', 'error');
+                return false;
+            }
+        }
+
+        /**
+         * 新建文件
+         * @param {string} parentPath 父目录路径
+         * @param {string} name 文件名
+         * @param {string} content 文件内容
+         * @returns {Promise<boolean>} 是否创建成功
+         */
+        async function createFile(parentPath, name, content = '') {
+            showLoading(true, '创建文件中...');
+
+            try {
+                const result = await request.post('/touch', {
+                    path: parentPath,
+                    name,
+                    content
+                });
+
+                if (result.code === 200) {
+                    showLoading(false);
+                    showNotice(result.message, 'success');
+                    // 重新加载文件列表
+                    await getFileList(state.currentPath);
+                    return true;
+                } else {
+                    showLoading(false);
+                    showNotice(result.message, 'error');
+                    return false;
+                }
+            } catch (error) {
+                showLoading(false);
+                showNotice('创建文件失败', 'error');
+                return false;
+            }
+        }
+
+        // ========================
+        // 5. UI 渲染函数
+        // ========================
+        /**
+         * 渲染文件列表
+         */
+        function renderFileList() {
+            const listEl = document.getElementById('fileList');
+            listEl.innerHTML = '';
+
+            if (state.fileList.length === 0) {
+                const emptyEl = document.createElement('div');
+                emptyEl.style.padding = '16px';
+                emptyEl.style.textAlign = 'center';
+                emptyEl.style.color = 'var(--text-sub)';
+                emptyEl.style.fontSize = '14px';
+                emptyEl.innerHTML = '<i class="fa fa-folder-open-o" style="font-size: 24px; margin-bottom: 8px; display: block;"></i> 此目录为空';
+                listEl.appendChild(emptyEl);
+                return;
+            }
+
+            state.fileList.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = `file-item ${state.activeFile?.path === item.path ? 'active' : ''}`;
+                itemEl.dataset.path = item.path;
+                itemEl.dataset.type = item.type;
+
+                const icon = item.type === 'folder'
+                    ? `<i class="fa fa-folder folder-icon"></i>`
+                    : `<i class="fa fa-file-text-o file-icon"></i>`;
+
+                const size = item.type === 'file'
+                    ? `<span class="size">${formatFileSize(item.size)}</span>`
+                    : '';
+
+                itemEl.innerHTML = `${icon}<span>${item.name}</span>${size}`;
+
+                // 绑定点击事件
+                itemEl.addEventListener('click', () => handleFileClick(item));
+
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        /**
+         * 打开文件编辑器
+         * @param {Object} file 文件信息
+         */
+        async function openEditor(file) {
+            // 读取文件内容
+            const fileData = await readFileContent(file.path);
+            if (!fileData) return;
+
+            // 更新状态
+            state.activeFile = {
+                ...file,
+                content: fileData.content
+            };
+
+            // 更新UI
+            document.getElementById('editorContainer').style.display = 'flex';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'flex';
+            document.getElementById('editorTitle').textContent = file.name;
+            document.getElementById('editorMeta').textContent =
+                `大小: ${formatFileSize(file.size)} | 路径: ${file.path}`;
+            document.getElementById('codeEditor').value = fileData.content;
+
+            // 高亮选中的文件
+            document.querySelectorAll('.file-item').forEach(el => {
+                el.classList.remove('active');
+                if (el.dataset.path === file.path) {
+                    el.classList.add('active');
+                }
+            });
+        }
+
+        /**
+         * 关闭编辑器
+         */
+        function closeEditor() {
+            document.getElementById('editorContainer').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('saveBtn').style.display = 'none';
+            state.activeFile = null;
+
+            // 取消文件选中状态
+            document.querySelectorAll('.file-item').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
+
+        /**
+         * 格式化文件大小
+         * @param {number} bytes 字节数
+         * @returns {string} 格式化后的大小
+         */
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        /**
+         * 显示模态框
+         * @param {string} modalId 模态框ID
+         */
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'flex';
+
+            // 设置父路径
+            if (modalId === 'newFolderModal') {
+                document.getElementById('folderParentPath').value = state.currentPath;
+                document.getElementById('folderNameInput').value = '';
+                document.getElementById('folderNameInput').focus();
+            } else if (modalId === 'newFileModal') {
+                document.getElementById('fileParentPath').value = state.currentPath;
+                document.getElementById('fileNameInput').value = '';
+                document.getElementById('fileContentInput').value = '';
+                document.getElementById('fileNameInput').focus();
+            }
+        }
+
+        /**
+         * 隐藏所有模态框
+         */
+        function hideAllModals() {
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // ========================
+        // 6. 事件处理函数
+        // ========================
+        /**
+         * 处理文件/文件夹点击
+         * @param {Object} item 文件/文件夹项
+         */
+        async function handleFileClick(item) {
+            if (item.type === 'folder') {
+                // 进入子文件夹
+                await getFileList(item.path);
+            } else {
+                // 打开文件编辑
+                await openEditor(item);
+            }
+        }
+
+        /**
+         * 返回上级目录
+         */
+        async function handleBackClick() {
+            const pathParts = state.currentPath.split('/').filter(Boolean);
+            if (pathParts.length > 0) {
+                pathParts.pop();
+                const parentPath = pathParts.length > 0 ? '/' + pathParts.join('/') : '/';
+                await getFileList(parentPath);
+                closeEditor();
+            } else {
+                showNotice('已是根目录', 'warning');
+            }
+        }
+
+        /**
+         * 保存文件
+         */
+        async function handleSaveClick() {
+            if (!state.activeFile) return;
+
+            const content = document.getElementById('codeEditor').value;
+            await saveFileContent(state.activeFile.path, content);
+
+            // ✅ 修复：使用浏览器兼容的字节长度计算函数
+            state.activeFile.size = calculateByteLength(content);
+            document.getElementById('editorMeta').textContent =
+                `大小: ${formatFileSize(state.activeFile.size)} | 路径: ${state.activeFile.path}`;
+        }
+
+        /**
+         * 新建文件夹确认
+         */
+        async function handleCreateFolder() {
+            const name = document.getElementById('folderNameInput').value.trim();
+            const parentPath = document.getElementById('folderParentPath').value;
+
+            if (!name) {
+                showNotice('文件夹名称不能为空', 'warning');
+                return;
+            }
+
+            const success = await createFolder(parentPath, name);
+            if (success) {
+                hideAllModals();
+            }
+        }
+
+        /**
+         * 新建文件确认
+         */
+        async function handleCreateFile() {
+            const name = document.getElementById('fileNameInput').value.trim();
+            const parentPath = document.getElementById('fileParentPath').value;
+            const content = document.getElementById('fileContentInput').value;
+
+            if (!name) {
+                showNotice('文件名称不能为空', 'warning');
+                return;
+            }
+
+            const success = await createFile(parentPath, name, content);
+            if (success) {
+                hideAllModals();
+            }
+        }
+
+        // ========================
+        // 7. 绑定事件
+        // ========================
+        function bindEvents() {
+            // 返回上级
+            document.getElementById('backBtn').addEventListener('click', handleBackClick);
+
+            // 保存文件
+            document.getElementById('saveBtn').addEventListener('click', handleSaveClick);
+
+            // 关闭编辑器
+            document.getElementById('closeEditorBtn').addEventListener('click', closeEditor);
+
+            // 新建文件夹
+            document.getElementById('newFolderBtn').addEventListener('click', () => {
+                showModal('newFolderModal');
+            });
+
+            // 新建文件
+            document.getElementById('newFileBtn').addEventListener('click', () => {
+                showModal('newFileModal');
+            });
+
+            // 取消新建文件夹
+            document.getElementById('cancelFolderBtn').addEventListener('click', hideAllModals);
+
+            // 确认新建文件夹
+            document.getElementById('confirmFolderBtn').addEventListener('click', handleCreateFolder);
+
+            // 取消新建文件
+            document.getElementById('cancelFileBtn').addEventListener('click', hideAllModals);
+
+            // 确认新建文件
+            document.getElementById('confirmFileBtn').addEventListener('click', handleCreateFile);
+
+            // 点击模态框外部关闭
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        hideAllModals();
+                    }
+                });
+            });
+
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                // Ctrl+S 保存
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    if (state.activeFile) {
+                        handleSaveClick();
+                    }
+                }
+
+                // ESC 关闭模态框/编辑器
+                if (e.key === 'Escape') {
+                    const modals = document.querySelectorAll('.modal-overlay');
+                    let modalOpen = false;
+
+                    modals.forEach(modal => {
+                        if (modal.style.display === 'flex') {
+                            modalOpen = true;
+                            hideAllModals();
+                        }
+                    });
+
+                    if (!modalOpen && state.activeFile) {
+                        closeEditor();
+                    }
+                }
+            });
+
+            // 窗口大小变化时重新适配高度
+            window.addEventListener('resize', () => {
+                const contentEl = document.querySelector('.content');
+                const toolbarHeight = document.querySelector('.toolbar').offsetHeight;
+                contentEl.style.height = `calc(100% - ${toolbarHeight}px - 16px)`;
+            });
+        }
+
+        // ========================
+        // 7. 初始化
+        // ========================
+        async function init() {
+            // 绑定事件
+            bindEvents();
+
+            // 加载根目录文件列表
+            await getFileList('/');
+
+            // 显示主界面
+            document.getElementById('mainContainer').style.display = 'flex';
+
+            // 通知主系统调整iframe高度
+            if (window !== window.top) {
+                const height = window.innerHeight; // 使用视口高度
+                window.parent.postMessage({
+                    action: 'RESIZE_IFRAME',
+                    payload: { height: height + 'px' }
+                }, '*');
+            }
+
+            showNotice('文件管理器加载完成', 'success');
+        }
+
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

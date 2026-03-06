@@ -1,0 +1,14 @@
+{
+    "name": "sb3_filemanager",
+    "author": "lition",
+    "version": [
+        0,
+        0,
+        1
+    ],
+    "desc": "文件夹查看器，可以在网页中修改",
+    "loadmode": "hybrid",
+    "permission": "key",
+    "priority": "main",
+    "load": true
+}

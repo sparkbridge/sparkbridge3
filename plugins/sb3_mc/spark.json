@@ -1,0 +1,10 @@
+{
+    "name": "sb3_mc",
+    "version": "1.0.0",
+    "author": "sb_team",
+    "desc": "mc命令执行插件",
+    "permission": "key",
+    "priority": "post",
+    "load": true,
+    "loadmode": "bds"
+}

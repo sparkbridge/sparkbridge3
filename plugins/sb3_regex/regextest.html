@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正则引擎 - 插件视图</title>
+    <style>
+        /* ==========================================
+           1. 继承主应用的 CSS 变量与基础样式
+           ========================================== */
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #ffffff;
+            /* 与主应用 iframe 背景融为一体 */
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #94a3b8;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            /* 防止 iframe 内部出现不必要的滚动条，除非内容溢出 */
+            box-sizing: border-box;
+        }
+
+        /* ==========================================
+           2. 页面布局与卡片样式 (对齐 SparkBridge3)
+           ========================================== */
+        .plugin-header {
+            margin-bottom: 24px;
+        }
+
+        .plugin-header h2 {
+            margin: 0;
+            font-size: 22px;
+            color: var(--text-main);
+        }
+
+        .plugin-header p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ==========================================
+           3. 表单与交互元素
+           ========================================== */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-main);
+            font-family: 'Fira Code', monospace;
+            /* 适合代码的等宽字体 */
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #ffffff;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================
+           4. 测试结果展示区
+           ========================================== */
+        .result-box {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--input-bg);
+            border: 1px dashed var(--border-color);
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .match-success {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .match-fail {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background-color: #bfdbfe;
+            color: #1e3a8a;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="plugin-header">
+        <h2>正则引擎沙盒 (Regex Sandbox)</h2>
+        <p>这是一个通过 iframe 动态加载的独立插件视图。您可以在此测试正则表达式的匹配效果。</p>
+    </div>
+
+    <div class="glass-card">
+        <h3 class="card-title">🔍 实时正则测试工具</h3>
+
+        <div class="form-group">
+            <label>正则表达式 (Pattern)</label>
+            <input type="text" id="regexPattern" placeholder="例如: \d{4}-\d{2}-\d{2}" value="(\d{4})-(\d{2})-(\d{2})" />
+        </div>
+
+        <div class="form-group">
+            <label>测试文本 (Test String)</label>
+            <textarea id="testString" placeholder="输入你想测试的文本...">今天是 2026-03-05，明天是 2026-03-06。</textarea>
+        </div>
+
+        <button class="btn-primary" onclick="runTest()">执行匹配测试</button>
+
+        <div class="result-box" id="resultOutput">
+            点击“执行匹配测试”查看结果...
+        </div>
+    </div>
+
+    <script>
+        function runTest() {
+            const patternInput = document.getElementById('regexPattern').value;
+            const testStr = document.getElementById('testString').value;
+            const outputBox = document.getElementById('resultOutput');
+
+            if (!patternInput) {
+                outputBox.innerHTML = '<span class="match-fail">错误：请输入正则表达式。</span>';
+                return;
+            }
+
+            try {
+                // 使用全局标志 'g' 找出所有匹配项
+                const regex = new RegExp(patternInput, 'g');
+                const matches = [...testStr.matchAll(regex)];
+
+                if (matches.length > 0) {
+                    let resultHTML = `<div class="match-success">✅ 匹配成功！共找到 ${matches.length} 处匹配：</div><ul style="padding-left: 20px; margin-top: 8px;">`;
+
+                    matches.forEach((match, index) => {
+                        resultHTML += `<li><strong>匹配 ${index + 1}:</strong> <span class="highlight">${match[0]}</span>`;
+                        // 如果有捕获组
+                        if (match.length > 1) {
+                            resultHTML += ` (捕获组: ${match.slice(1).join(', ')})`;
+                        }
+                        resultHTML += `</li>`;
+                    });
+
+                    resultHTML += '</ul>';
+                    outputBox.innerHTML = resultHTML;
+                } else {
+                    outputBox.innerHTML = '<span class="match-fail">❌ 未找到任何匹配项。</span>';
+                }
+            } catch (e) {
+                // 捕获正则语法错误
+                outputBox.innerHTML = `<span class="match-fail">⚠️ 正则表达式语法错误：${e.message}</span>`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

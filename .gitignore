@@ -1,8 +1,9 @@
 # sandbox
-data/
+testdata/
+serverdata/
 tmp/
 plugins/examples/
-./sparkbridge3.zip
+./sparkbridge2.zip
 
 # idea
 .vscode/

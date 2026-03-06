@@ -1,0 +1,8 @@
+{
+    "name": "sb3_regex",
+    "version": [2,0,0],
+    "author": "SparkBridge3 Official",
+    "permission": "key",
+    "priority": "main",
+    "load": true
+}

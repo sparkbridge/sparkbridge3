@@ -112,7 +112,8 @@ class SparkCore extends EventEmitter {
                     addEditArray(key,arr,desc){ this.items.push({ type: 'editArray', key, arr, desc });}
                 }
             },
-            file: require('../handles/file'),
+            // file: require('../handles/file'),
+            getFileHelper: () =>{return new (require('../handles/file')).FileObj(pluginName)},
             getLogger: () => require('../handles/logger').getLogger(pluginName)
 
         };

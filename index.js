@@ -28,8 +28,8 @@ const defaultConfig = {
     pwd: '',
     ws_type: 0,
     server_port: 3002,
-    debug: true,
-    admin_qq: 123456789,  // [新增] 注入主管理员QQ
+    debug: false,
+    admin_qq: [123456789],  // [新增] 注入主管理员QQ
     main_group: 987654321   // [新增] 注入主群号
 };
 
@@ -114,16 +114,25 @@ core.on('core.ready', () => {
         .number("server_port", CONFIG.server_port, "反向 WS 监听端口")
         .text("pwd", CONFIG.pwd, "连接鉴权密码 (Access Token)")
         .switch("debug", CONFIG.debug, "开发者日志模式")
-        .number("admin_qq", CONFIG.admin_qq, "超级管理员QQ号 (拥有最高权限)")
+        .array("admin_qq", CONFIG.admin_qq, "超级管理员QQ号 (拥有最高权限)")
         .number("main_group", CONFIG.main_group, "机器人主群号 (消息互通默认目标)")
         .register();
 });
 
 // 监听 Web 前端修改了 base 配置的事件
 core.on("config.update.base", (key, newValue) => {
-    console.log(newValue);
+    // console.log(newValue);
+    
+    if(spark.debug) console.log(`核心配置 [${key}] 已更改为 ${newValue} ${typeof newValue}。`);
+    if(key == 'admin_qq'){
+        // /* if(spark.debug)  */console.log('QQ号数组转换中...');
+        const newQqList = newValue.map(qq => Number(qq));
+        // console.log(newQqList)
+        newValue = newQqList;
+    }
+    // console.log(newValue);
     CONFIG[key] = newValue;
-    console.log(`核心配置 [${key}] 已更改为 ${newValue} ${typeof newValue}。`);
+    // console.log(CONFIG);
     // 存入本地文件
     rootFileObj.write('config.json', JSON.stringify(CONFIG, null, 4));
 

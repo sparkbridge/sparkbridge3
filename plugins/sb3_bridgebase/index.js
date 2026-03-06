@@ -4,10 +4,10 @@ const lg = require('../../handles/logger')
 const logger = lg.getLogger('QClient');
 const JSON5 = require('json5');
 
-function text(str) {
-    if (typeof str == 'string') return msgbuilder.text(str);
-    else return str;
-}
+// function text(str) {
+//     if (typeof str == 'string') return msgbuilder.text(str);
+//     else return str;
+// }
 
 const build_reply = (id, type, mid) => {
     return (msg, quote = false) => {
@@ -27,11 +27,12 @@ const build_reply = (id, type, mid) => {
         }
     }
 }
+
 const fhelper = require('../../handles/file');
-const _config = new fhelper.FileObj('base');
-const _raw_file = _config.getFile("config.json");
-const _p_raw = JSON5.parse(_raw_file);
-const _isArray = _p_raw.onebot_mode_v11;
+// const _config = new fhelper.FileObj('base');
+// const _raw_file = _config.getFile("config.json");
+// const _p_raw = JSON5.parse(_raw_file);
+// const _isArray = _p_raw.onebot_mode_v11;
 //console.log(_isArray)
 spark.on('gocq.pack', (pack) => {
    // if (spark.debug)

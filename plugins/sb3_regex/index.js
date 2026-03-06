@@ -59,44 +59,113 @@ spark.on("config.update.sb3_regex", (key, val) => {
     logger.info(`基础配置已更新并保存本地: ${key} -> ${val}`);
 });
 
+const customActionsRegistry = {};
+
+/**
+ * 暴露给其他插件的注册函数
+ * @param {string} actionType 动作类型名称 (如 'getWeather')
+ * @param {function} handlerFunction 处理函数
+ */
+function registerAction(actionType, handlerFunction) {
+    if (typeof handlerFunction === 'function') {
+        customActionsRegistry[actionType] = handlerFunction;
+        logger.info(`已成功注册外部自定义动作: [${actionType}]`);
+    } else {
+        logger.error(`注册外部动作 [${actionType}] 失败: 必须提供一个函数`);
+    }
+}
+
+// 将该函数挂载到 sharedEnv 变量池中
+if (spark.env && spark.env.set) {
+    spark.env.set('regex.register_action', registerAction);
+    console.log(spark.env.get("regex.register_action"));
+    logger.info('已将自定义动作注册接口挂载到全局变量池: regex.register_action');
+}
+
+/**
+ * 文本变量替换引擎
+ * @param {string} text 包含 $变量 的原始文本
+ * @param {Object} pack 消息包 (提供基础属性)
+ * @param {Object} context 动作上下文 (提供插件返回的动态属性)
+ */
+function parseVariables(text, pack, context) {
+    if (!text) return '';
+
+    // 匹配 $ 开头，后面跟着字母、数字或下划线的变量名，例如 $userId, $weather
+    return text.replace(/\$([a-zA-Z0-9_]+)/g, (match, varName) => {
+        // 1. 优先匹配系统内置变量
+        if (varName === 'userId') return pack.user_id;
+        if (varName === 'groupId') return pack.group_id;
+        if (varName === 'nickname') return pack.sender ? pack.sender.nickname : '';
+
+        // 2. 匹配上下文中的动态变量 (包括 executeCommand 的 result，或第三方插件返回的 kv)
+        if (context[varName] !== undefined) {
+            return context[varName];
+        }
+
+        // 3. 如果都没找到，原样返回（或者你也可以改成返回空字符串 ''）
+        return match;
+    });
+}
+
 // ==========================================
 // 模块 C: 异步动作执行器
 // ==========================================
-/**
- * 执行动作序列
- * @param {Array} actions 动作列表
- * @param {Object} pack 原始消息包
- */
 async function executeActions(actions, pack) {
+    // 动作执行上下文，现在它是一个动态的变量池
+    let actionContext = {
+        result: '' // 保留默认的 $result 供 executeCommand 等使用
+    };
+
     for (const action of actions) {
         try {
+            // 1. 优先检查是否为其他插件注册的自定义动作
+            if (customActionsRegistry[action.type]) {
+                // 此时也可以用 parseVariables 解析第三方动作的 params (这样第三方插件也能接收动态参数)
+                const parsedParams = parseVariables(action.params, pack, actionContext);
+
+                // 执行第三方自定义动作
+                const ret = await customActionsRegistry[action.type](parsedParams, pack, actionContext);
+
+                // 【核心修改】判断返回值类型
+                if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
+                    // 如果返回的是 {weather: "晴天", location: "美国"} 这样的对象
+                    // 直接将键值对合并到 actionContext 中
+                    Object.assign(actionContext, ret);
+                } else if (ret !== undefined) {
+                    // 如果只返回了字符串或数字，按老规矩存入 $result
+                    actionContext.result = String(ret);
+                }
+                continue;
+            }
+
+            // 2. 原生内置动作
             switch (action.type) {
                 case 'replyText': {
-                    // 替换变量，例如 $userId
-                    let content = action.params
-                        .replace('$userId', pack.user_id)
-                        .replace('$nickname', pack.sender ? pack.sender.nickname : '');
-
-                    // 调用已有的发送群消息接口
+                    // 【核心修改】使用通用的变量替换引擎
+                    let content = parseVariables(action.params, pack, actionContext);
                     await spark.QClient.sendGroupMsg(pack.group_id, content);
                     break;
                 }
 
                 case 'deleteMessage': {
-                    // 调用 OneBot API 撤回消息
                     await spark.adapter.deleteMsg(pack.message_id);
                     break;
                 }
 
                 case 'muteUser': {
-                    // 调用 OneBot API 禁言用户
-                    const duration = parseInt(action.params) || 600;
+                    // 禁言时长也支持解析变量了，比如第三方插件返回了一个 $punishTime
+                    const parsedDuration = parseVariables(action.params, pack, actionContext);
+                    const duration = parseInt(parsedDuration) || 600;
                     await spark.adapter.sendGroupBan(pack.group_id, pack.user_id, duration);
                     break;
                 }
 
-                case 'executeCommand':{
-                    let res = mc.runcmdEx(action.params);
+                case 'executeCommand': {
+                    // 命令也支持动态变量替换，比如 list $targetPlayer
+                    let parsedCmd = parseVariables(action.params, pack, actionContext);
+                    let res = mc.runcmdEx(parsedCmd);
+                    actionContext.result = res.output || (res.success ? "执行成功" : "执行失败");
                     break;
                 }
 

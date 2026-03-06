@@ -27,13 +27,13 @@ class WebManager {
             admin_password: '*',
             jwt_secret: 'SparkBridge3_Default_Secret',
             host: "127.0.0.1",
-            port: 3000
+            port: 3001
         })
         this.config = JSON.parse(this.fileHelper.read('config.json') || '{}');
 
         // 初始化从配置文件读取的参数
         this.host = this.config.host || '0.0.0.0';
-        this.port = this.config.port || 3000;
+        this.port = this.config.port || 3001;
         this.adminPassword = this.config.admin_password || 'admin';
         this.jwtSecret = this.config.jwt_secret || 'SparkBridge3_Default_Secret';
 

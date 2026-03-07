@@ -44,12 +44,6 @@ fileObj.initFile("rules.json", [
         "eventType": "group.member_join",
         "conditions": [
             {
-                "id": "heusgw78q",
-                "field": "groupId",
-                "operator": "==",
-                "value": "123456"
-            },
-            {
                 "id": "8ful15hh3",
                 "field": "userRole",
                 "operator": "==",
@@ -228,13 +222,13 @@ async function executeActions(actions, pack, matchResult = []) {
                     break;
                 }
                 case 'deleteMessage': {
-                    await spark.adapter.deleteMsg(pack.message_id);
+                    await spark.QClient.deleteMsg(pack.message_id);
                     break;
                 }
                 case 'muteUser': {
                     const parsedDuration = parseVariables(action.params, pack, actionContext);
                     const duration = parseInt(parsedDuration) || 600;
-                    await spark.adapter.sendGroupBan(pack.group_id, pack.user_id, duration);
+                    await spark.QClient.sendGroupBan(pack.group_id, pack.user_id, duration);
                     break;
                 }
                 case 'executeCommand': {

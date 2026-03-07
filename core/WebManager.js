@@ -32,9 +32,9 @@ class WebManager {
         this.config = JSON.parse(this.fileHelper.read('config.json') || '{}');
 
         // 初始化从配置文件读取的参数
-        this.host = this.config.host || '0.0.0.0';
-        this.port = this.config.port || 3001;
-        this.adminPassword = this.config.admin_password || 'admin';
+        this.host = this.config.host;
+        this.port = this.config.port;
+        this.adminPassword = this.config.admin_password;
         this.jwtSecret = this.config.jwt_secret || 'SparkBridge3_Default_Secret';
 
         this.customPages = [];

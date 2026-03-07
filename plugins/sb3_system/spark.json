@@ -1,9 +1,0 @@
-{
-    "name": "sb3_system",
-    "version": "1.0.0",
-    "author": "SparkBridge3 Official",
-    "desc": "系统功能插件",
-    "permission": "core",
-    "priority": "main",
-    "load": true
-}

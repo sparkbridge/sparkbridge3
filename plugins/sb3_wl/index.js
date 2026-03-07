@@ -92,9 +92,14 @@ const xbox = {
 // 兼容SB2
 spark.env.set('mc', xbox);
 
-if(config.enbale){
+// console.log(config)
+
+if(config.enable){
+    // console.log("已启用白名单绑定");
     spark.on("message.group.normal",(e,reply)=>{
         let {raw_message,group_id} = e;
+        // console.log(e)
+        // console.log(spark.env.get("main_group"))
         if(group_id == spark.env.get("main_group")){ 
             if(raw_message.startsWith("绑定白名单")){
                 if (get_xbox_by_qid(e.sender.user_id) == undefined) {
@@ -131,7 +136,6 @@ if(config.enbale){
         }
     });
     spark.on('notice.group_decrease', (e) => {
-
         const { self_id, user_id, group_id } = e;
         if (group_id != spark.env.get("main_group") || user_id == self_id) return
         if (get_xbox_by_qid(user_id) != undefined) {

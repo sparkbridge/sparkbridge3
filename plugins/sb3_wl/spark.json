@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "author": "SparkBridge3 Official",
     "desc": "实现白名单双向绑定",
-    "permission": "core",
+    "permission": "key",
     "priority": "main",
     "load": true
 }

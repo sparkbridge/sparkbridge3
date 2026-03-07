@@ -52,7 +52,45 @@ function del_xbox_by_qid(qid){
     save_wl();
 }
 
+spark.env.set('del_xbox_by_qid', del_xbox_by_qid);
+spark.env.set('get_xbox_by_qid', get_xbox_by_qid);
+spark.env.set('get_qid_by_xbox', get_qid_by_xbox);
+spark.env.set('xbox_exist', xbox_exist);
+spark.env.set('set_xbox_by_qid', set_xbox_by_qid);
 
+const xbox = {
+    getXbox: function (id) {
+        return get_xbox_by_qid(id);
+    },
+    addXbox: function (id, xbox) {
+        if (get_xbox_by_qid(id) == undefined) {
+            if (xbox_exist(xbox)) {
+                return false;
+            }
+            set_xbox_by_qid(id, xbox);
+            return true;
+        }
+        return false;
+    },
+    remXboxByQid : function (id) {
+        del_xbox_by_qid(id);
+    },
+    hasXbox: function (id) {
+        return get_xbox_by_qid(id) != undefined;
+    },
+    getQQByXbox : function (xbox) {
+        return get_qid_by_xbox(xbox);
+    },
+    remXboxByName : function (name) {
+        let qid = get_qid_by_xbox(name);
+        if(qid != undefined){
+            del_xbox_by_qid(qid);
+        }
+    }
+}
+
+// 兼容SB2
+spark.env.set('mc', xbox);
 
 if(config.enbale){
     spark.on("message.group.normal",(e,reply)=>{

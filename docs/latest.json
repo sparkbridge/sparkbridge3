@@ -1,0 +1,9 @@
+{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "version": "1.0.5",
+        "releaseNotes": "1. 修复了正则引擎的转义 Bug\n2. 优化了面板的渲染性能",
+        "downloadUrl": "https://github.com/your-repo/releases/tag/v1.0.5"
+    }
+}

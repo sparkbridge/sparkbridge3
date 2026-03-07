@@ -8,10 +8,67 @@ const fileObj = new fhelper.FileObj('sb3_regex');
 // 模块 B: 基础配置持久化 (config.json)
 // ==========================================
 // 尝试读取本地已保存的配置，如果没有则使用默认值并立刻保存
-const defaultConfig = { enable: true, admin_debug: false,book:false,book_url:"" };
+const defaultConfig = { enable: true, admin_debug: false,book:false,book_url:"",only_on_main:true };
 
 
 fileObj.initFile("rules.json", [
+    {
+        "id": "4a3gynzms",
+        "name": "查询人数",
+        "enabled": true,
+        "triggerType": "message",
+        "pattern": "查服",
+        "flags": "i",
+        "eventType": "group.member_join",
+        "conditions": [],
+        "actions": [
+            {
+                "id": "siy07v46s",
+                "type": "executeCommand",
+                "params": "list"
+            },
+            {
+                "id": "e2g4ugyz1",
+                "type": "replyText",
+                "params": "$result"
+            }
+        ]
+    },
+    {
+        "id": "th7nremtk",
+        "name": "执行命令",
+        "enabled": true,
+        "triggerType": "message",
+        "pattern": "执行(.+)",
+        "flags": "i",
+        "eventType": "group.member_join",
+        "conditions": [
+            {
+                "id": "heusgw78q",
+                "field": "groupId",
+                "operator": "==",
+                "value": "123456"
+            },
+            {
+                "id": "8ful15hh3",
+                "field": "userRole",
+                "operator": "==",
+                "value": "admin"
+            }
+        ],
+        "actions": [
+            {
+                "id": "hap8czwoh",
+                "type": "executeCommand",
+                "params": "$1"
+            },
+            {
+                "id": "hmnunjjh6",
+                "type": "replyText",
+                "params": "$result"
+            }
+        ]
+    },
     {
         id: 'rule_101', name: '辱骂词汇拦截', enabled: true, triggerType: 'message',
         pattern: '(tmd|sb|卧槽|滚)', flags: 'ig', eventType: '',
@@ -24,7 +81,7 @@ fileObj.initFile("rules.json", [
         conditions: [{ id: 'c4', field: 'groupId', operator: '==', value: '123456789' }],
         actions: [{ id: 'a5', type: 'replyText', params: '欢迎 $userId 加入本群！' }]
     }
-]);
+],false);
 let rules = JSON.parse(fileObj.read('rules.json'))
 
 fileObj.initFile("config.json", defaultConfig);
@@ -37,6 +94,7 @@ spark.web.createConfig("sb3_regex")
     .switch("admin_debug", conf.admin_debug, "是否开启匹配调试日志")
     .switch("book",conf.book,"是否开启订阅功能")
     .text("book_url",conf.book_url,"订阅链接")
+    .switch("only_on_main",conf.only_on_main,"是否仅对主群生效")
     .register();
 
 spark.web.registerApi("GET","/regexengine/list",(req,res)=>{
@@ -261,6 +319,7 @@ function checkConditions(conditions, pack) {
 // ==========================================
 spark.on('message.group.normal', async (pack) => {
     if (!conf.enable || pack.post_type !== 'message' || pack.message_type !== 'group') return;
+    if (pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true) return;
 
     const msgText = pack.raw_message.trim();
 
@@ -357,10 +416,12 @@ async function handleEvent(currentEventType, pack) {
 }
 
 spark.on('notice.group.increase', async (pack) => {
+    if(pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true)return;
     await handleEvent('group.member_join', pack);
 });
 
 spark.on('notice.group.decrease', async (pack) => {
+    if (pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true) return;
     await handleEvent('group.member_leave', pack);
 });
 

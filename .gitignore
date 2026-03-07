@@ -3,7 +3,9 @@ testdata/
 serverdata/
 tmp/
 plugins/examples/
-./sparkbridge2.zip
+./sparkbridge.zip
+./sparkbridge3.zip
+web/
 
 # idea
 .vscode/

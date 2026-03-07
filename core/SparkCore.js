@@ -3,7 +3,7 @@ const WebManager = require('./WebManager');
 const PluginManager = require('./PluginManager');
 const path = require('path');
 const fs = require('fs');
-const { getLogger } = require('../handles/logger');
+// const { getLogger } = require('../handles/logger');
 
 class SparkCore extends EventEmitter {
     constructor(config) {

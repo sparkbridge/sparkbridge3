@@ -1,0 +1,27 @@
+{
+    "code": 200,
+    "msg": "success",
+    "data": [
+        {
+            "id": 101,
+            "type": "info",
+            "tag": "发布",
+            "title": "SparkBridge3 核心框架架构升级完毕，大幅降低内存占用",
+            "date": "2026-03-05"
+        },
+        {
+            "id": 102,
+            "type": "warning",
+            "tag": "维护",
+            "title": "预告：本周末凌晨将进行 WebSocket 节点网络扩容",
+            "date": "2026-03-01"
+        },
+        {
+            "id": 103,
+            "type": "success",
+            "tag": "功能",
+            "title": "全新的“自动化规则引擎”与正则匹配模块正式上线",
+            "date": "2026-02-28"
+        }
+    ]
+}

@@ -16,14 +16,18 @@ let currentConfig = JSON.parse(fileHelper.read('config.json') || '{"admin_qq":"1
 spark.on("config.update.sb3_system", (key, newValue) => {
     currentConfig[key] = newValue;
     fileHelper.write('config.json', currentConfig);
-    console.log(`[系统模块] 配置已更新: ${key} -> ${newValue}`);
+    // console.log(`[系统模块] 配置已更新: ${key} -> ${newValue}`);
 });
 
 
 // 2. 核心事件监听
 spark.on('gocq.pack', (pack) => {
     // 过滤非群聊消息
+    
     if (pack.post_type !== 'message' || pack.message_type !== 'group') return;
+    if (pack.group_id !== spark.env.get("main_group")){
+        return;
+    }
 
     const msgText = pack.raw_message;
 
@@ -33,17 +37,17 @@ spark.on('gocq.pack', (pack) => {
             at(pack.sender.user_id),
             text(" Pong! SparkBridge3 运行正常。")
         ];
-        console.log(`[系统模块] 用户 ${pack.sender.nickname} (QQ: ${pack.sender.user_id}) 发送了 ping 命令。`);
+        // console.log(`[系统模块] 用户 ${pack.sender.nickname} (QQ: ${pack.sender.user_id}) 发送了 ping 命令。`);
         spark.QClient.sendGroupMsg(pack.group_id, replyMsg).then(data=>{
-            console.log(`[系统模块] 回复了用户 ${pack.sender.nickname} (QQ: ${pack.sender.user_id}) 的 ping 命令。`);
+            // console.log(`[系统模块] 回复了用户 ${pack.sender.nickname} (QQ: ${pack.sender.user_id}) 的 ping 命令。`);
         });
 
     }
 
     // 重载插件功能 (仅限管理员)
-    if (msgText === '#reload' && pack.sender.user_id.toString() === currentConfig.admin_qq) {
-        spark.sendGroupMsg(pack.group_id, text("正在通知核心重载配置..."));
-        // 触发自定义事件，核心层可以监听此事件执行重载逻辑
-        spark.emit('system.request_reload');
-    }
+    // if (msgText === '#reload' && pack.sender.user_id.toString() === currentConfig.admin_qq) {
+    //     spark.sendGroupMsg(pack.group_id, text("正在通知核心重载配置..."));
+    //     // 触发自定义事件，核心层可以监听此事件执行重载逻辑
+    //     spark.emit('system.request_reload');
+    // }
 });

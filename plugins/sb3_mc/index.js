@@ -100,36 +100,43 @@ function formatMsg(msg) {
 
 
 // 1. QQ -> MC 游戏内
-spark.on('message.group.normal', (pack) => {
-    // console.log(`[QQ -> MC] 收到消息: ${pack.raw_message}`);
-    if (pack.group_id === TARGET_GROUP) {
-        // 将 QQ 消息广播到游戏内
-        const senderName = pack.sender.card || pack.sender.nickname;
-        const content = formatMsg(pack.message);
-        // 调用 BDS 原生接口 (通过沙盒暴露的 mc 对象)
-        if(content!="")
-            mc.broadcast(replacePlaceholders(conf.chat_to_server_format, senderName, content));
-    }
-});
+if(conf.chat_to_servere_enable){
+    spark.on('message.group.normal', (pack) => {
+        // console.log(`[QQ -> MC] 收到消息: ${pack.raw_message}`);
+        if (pack.group_id === TARGET_GROUP) {
+            // 将 QQ 消息广播到游戏内
+            const senderName = pack.sender.card || pack.sender.nickname;
+            const content = formatMsg(pack.message);
+            // 调用 BDS 原生接口 (通过沙盒暴露的 mc 对象)
+            if (content != "")
+                mc.broadcast(replacePlaceholders(conf.chat_to_server_format, senderName, content));
+        }
+    });
+}
 
 // 2. MC 游戏内 -> QQ
 // 监听游戏内的玩家聊天事件
-mc.listen("onChat", (player, chatText) => {
-    const playerName = player.realName;
-    // const msg = text(`[游戏内] ${playerName}: ${chatText}`);
-    // 调用 SparkBridge3 API 发送到群里
-    spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.chat_to_group_format, playerName,chatText));
-    return true; // 允许消息在游戏内正常显示
-});
+if(conf.chat_to_group_enable){
+    mc.listen("onChat", (player, chatText) => {
+        const playerName = player.realName;
+        // const msg = text(`[游戏内] ${playerName}: ${chatText}`);
+        // 调用 SparkBridge3 API 发送到群里
+        spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.chat_to_group_format, playerName, chatText));
+        return true; // 允许消息在游戏内正常显示
+    });
+}
 
 // 3. 玩家进退服通知
-mc.listen("onJoin", (player) => {
-    // console.log(conf.join_format)
-    // console.log(replacePlaceholders(conf.join_format, player.realName))
-    spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.join_format, player.realName));
-});
+if(conf.join_to_group_enable){
+    mc.listen("onJoin", (player) => {
+        // console.log(conf.join_format)
+        // console.log(replacePlaceholders(conf.join_format, player.realName))
+        spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.join_format, player.realName));
+    });
+}
 
-mc.listen("onLeft", (player) => {
-    spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.leave_format, player.realName));
-});
-
+if(conf.leave_to_group_enable){
+    mc.listen("onLeft", (player) => {
+        spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.leave_format, player.realName));
+    });
+}

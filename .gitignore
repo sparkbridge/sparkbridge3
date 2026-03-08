@@ -7,6 +7,7 @@ plugins/examples/
 sparkbridge3.zip
 web/
 /plugins/list.json
+/publish.bat
 # idea
 .vscode/
 

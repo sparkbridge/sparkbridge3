@@ -569,6 +569,7 @@
             activeFile: null,
             isLoading: false
         };
+        let sb3Token = '';
 
         // ========================
         // 2. 主系统通信工具函数（规范要求）
@@ -669,6 +670,41 @@
             return byteLength;
         }
 
+        function getSB3Token() {
+                return new Promise((resolve) => {
+                    // 优先从URL参数获取token
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlToken = urlParams.get('token');
+                    if (urlToken) {
+                        sb3Token = urlToken;
+                        resolve();
+                        return;
+                    }
+
+                    // 否则向主应用请求token
+                    if (window !== window.top) {
+                        // 监听主应用返回的token
+                        window.addEventListener('message', function listener(e) {
+                            if (e.data.action === 'SB3_TOKEN') {
+                                sb3Token = e.data.payload.token;
+                                // console.log('获取Token成功', sb3Token);
+                                window.removeEventListener('message', listener);
+                                resolve();
+                            }
+                        });
+
+                        // 发送获取token请求
+                        window.parent.postMessage({
+                            action: 'GET_SB3_TOKEN'
+                        }, '*');
+                    } else {
+                        // 调试模式下的默认值（生产环境需移除）
+                        sb3Token = 'dev_token_123456';
+                        resolve();
+                    }
+                });
+            }
+
         // ========================
         // 4. API 请求函数
         // ========================
@@ -688,7 +724,12 @@
                 const fullUrl = `${API_BASE}${url}${queryString ? '?' + queryString : ''}`;
 
                 try {
-                    const response = await fetch(fullUrl);
+                    const response = await fetch(fullUrl,{
+                        headers: {
+                            'Authorization': `Bearer ${sb3Token}`,
+                            'Content-Type': 'application/json'
+                        }
+});
                     const data = await response.json();
                     return data;
                 } catch (error) {
@@ -708,7 +749,8 @@
                     const response = await fetch(`${API_BASE}${url}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${sb3Token}`,
                         },
                         body: JSON.stringify(data)
                     });
@@ -1179,6 +1221,8 @@
         async function init() {
             // 绑定事件
             bindEvents();
+
+            await getSB3Token();
 
             // 加载根目录文件列表
             await getFileList('/');

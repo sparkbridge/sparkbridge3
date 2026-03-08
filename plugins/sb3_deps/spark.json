@@ -1,0 +1,14 @@
+{
+    "name": "sb3_deps",
+    "author": "lition",
+    "version": [
+        0,
+        0,
+        1
+    ],
+    "desc": "管理BDS依赖集",
+    "loadmode": "bds",
+    "permission": "key",
+    "priority": "main",
+    "load": true
+}

@@ -103,13 +103,18 @@ class SparkCore extends EventEmitter {
 
             telemetry: {
                 WebConfigBuilder: class {
-                    constructor(name) { this.name = name; this.items = []; }
-                    addText(key, val, desc) { this.items.push({ type: 'text', key, val, desc }); }
-                    addNumber(key, val, desc) { this.items.push({ type: 'number', key, val, desc }); }
-                    addChoosing(key, options, val, desc) { this.items.push({ type: 'choose', key, options, val, desc }); }
-                    addSwitch(key, val, desc) { this.items.push({ type: 'switch', key, val, desc }); }
+                    constructor(name) { 
+                        // this.name = name; this.items = [];
+                       this.schema = { name, items: [] };
+                     }
+                    addText(key, val, desc) { this.schema.items.push({ type: 'text', key, val, desc }); }
+                    addNumber(key, val, desc) { this.schema.items.push({ type: 'number', key, val, desc }); }
+                    addChoosing(key, options, val, desc) { this.schema.items.push({ type: 'choose', key, options, val, desc }); }
+                    addSwitch(key, val, desc) { this.schema.items.push({ type: 'switch', key, val, desc }); }
 
-                    addEditArray(key,arr,desc){ this.items.push({ type: 'editArray', key, arr, desc });}
+                    addEditArray(key, arr, desc) { this.schema.items.push({ type: 'editArray', key, arr, desc });}
+
+                    register() { self.webManager.registerConfig(this.schema) }
                 }
             },
             // file: require('../handles/file'),

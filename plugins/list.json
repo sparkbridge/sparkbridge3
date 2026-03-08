@@ -3,5 +3,6 @@
   "sb3_bridgebase",
   "sb3_filemanager",
   "sb3_mc",
-  "sb3_wl"
+  "sb3_wl",
+  "sb3_deps"
 ]

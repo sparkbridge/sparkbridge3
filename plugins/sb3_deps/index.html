@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理依赖集</title>
+    <style>
+        /* 全局盒子模型重置 */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* 核心 body 样式（遵循规范） */
+        body {
+            margin: 0;
+            padding: 24px;
+            background-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* SparkBridge3 视觉规范对齐 */
+        :root {
+            --theme-blue: #3b82f6;
+            --theme-blue-hover: #2563eb;
+            --bg-color: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-secondary: #94a3b8;
+        }
+
+        /* 页面容器 */
+        .container {
+            max-width: 100%;
+            background: var(--bg-color);
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            padding: 32px;
+        }
+
+        /* 标题样式 */
+        .page-title {
+            margin: 0 0 24px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* 数组编辑器样式 */
+        .editor-wrapper {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            min-height: 200px;
+        }
+
+        .dep-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .dep-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 8px;
+            font-family: -apple-system, sans-serif;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: none;
+            font-family: -apple-system, sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add {
+            background-color: var(--theme-blue);
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .btn-add:hover {
+            background-color: var(--theme-blue-hover);
+        }
+
+        .btn-save {
+            background-color: var(--theme-blue);
+            color: white;
+            margin-right: 8px;
+        }
+
+        .btn-save:hover {
+            background-color: var(--theme-blue-hover);
+        }
+
+        .btn-reset {
+            background-color: #f8fafc;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-reset:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Loading 状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 工具按钮组 */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="page-title">管理依赖集</h1>
+
+        <!-- 加载状态 -->
+        <div id="loading" class="loading">加载依赖集数据中...</div>
+
+        <!-- 数组编辑器 -->
+        <div id="editor" style="display: none;">
+            <button class="btn btn-add" id="addDepBtn">+ 添加依赖项</button>
+            <div class="editor-wrapper" id="depsList"></div>
+            <div class="btn-group">
+                <button class="btn btn-save" id="saveBtn">保存依赖集</button>
+                <button class="btn btn-reset" id="resetBtn">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let sb3Token = '';
+        let originalDeps = []; // 原始数据备份
+        const GET_DEPS_URL = '/api/plugin/deps/list'; // 替换为实际获取地址
+        const POST_DEPS_URL = '/api/plugin/deps/list'; // 替换为实际提交地址
+
+        // 1. 初始化 - 获取Token并加载数据
+        async function init() {
+            try {
+                // 获取Token（遵循鉴权规范）
+                await getSB3Token();
+
+                // 加载依赖数据
+                await loadDepsData();
+
+                // 初始化编辑器事件
+                initEditorEvents();
+
+                // 通知主应用调整iframe高度
+                adjustIframeHeight();
+            } catch (error) {
+                showNotice(`初始化失败：${error.message}`, 'error');
+                console.error('初始化失败', error);
+            }
+        }
+
+        // 2. 获取SparkBridge3 Token（支持URL传参或postMessage）
+        function getSB3Token() {
+            return new Promise((resolve) => {
+                // 优先从URL参数获取token
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlToken = urlParams.get('token');
+                if (urlToken) {
+                    sb3Token = urlToken;
+                    resolve();
+                    return;
+                }
+
+                // 否则向主应用请求token
+                if (window !== window.top) {
+                    // 监听主应用返回的token
+                    window.addEventListener('message', function listener(e) {
+                        if (e.data.action === 'SB3_TOKEN') {
+                            sb3Token = e.data.payload.token;
+                            // console.log('获取Token成功', sb3Token);
+                            window.removeEventListener('message', listener);
+                            resolve();
+                        }
+                    });
+
+                    // 发送获取token请求
+                    window.parent.postMessage({
+                        action: 'GET_SB3_TOKEN'
+                    }, '*');
+                } else {
+                    // 调试模式下的默认值（生产环境需移除）
+                    sb3Token = 'dev_token_123456';
+                    resolve();
+                }
+            });
+        }
+
+        // 3. 加载依赖集数据
+        async function loadDepsData() {
+            const loadingEl = document.getElementById('loading');
+            const editorEl = document.getElementById('editor');
+
+            try {
+                const response = await fetch(GET_DEPS_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${sb3Token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    // 通知主应用token失效
+                    window.parent.postMessage({
+                        action: 'TOKEN_EXPIRED'
+                    }, '*');
+                    throw new Error('登录状态失效，请重新登录');
+                }
+
+                const result = await response.json();
+                if (result.code !== 200) {
+                    throw new Error(`数据加载失败：${result.msg || '未知错误'}`);
+                }
+
+                // 保存原始数据
+                originalDeps = [...result.deps];
+                // 渲染编辑器
+                renderDepsList(result.deps);
+
+                // 切换显示状态
+                loadingEl.style.display = 'none';
+                editorEl.style.display = 'block';
+            } catch (error) {
+                loadingEl.textContent = `加载失败：${error.message}`;
+                throw error;
+            }
+        }
+
+        // 4. 渲染依赖项列表
+        function renderDepsList(deps) {
+            const depsListEl = document.getElementById('depsList');
+            depsListEl.innerHTML = '';
+
+            if (deps.length === 0) {
+                depsListEl.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 16px;">暂无依赖项，点击"+ 添加依赖项"创建</div>';
+                return;
+            }
+
+            deps.forEach((dep, index) => {
+                const depItem = document.createElement('div');
+                depItem.className = 'dep-item';
+                depItem.innerHTML = `
+                    <input type="text" class="dep-input" value="${dep}" data-index="${index}" placeholder="请输入依赖项">
+                    <button class="delete-btn" data-index="${index}">✕</button>
+                `;
+                depsListEl.appendChild(depItem);
+            });
+        }
+
+        // 5. 初始化编辑器事件
+        function initEditorEvents() {
+            // 添加依赖项
+            document.getElementById('addDepBtn').addEventListener('click', () => {
+                const depsListEl = document.getElementById('depsList');
+                // 清空空状态提示
+                if (depsListEl.innerHTML.includes('暂无依赖项')) {
+                    depsListEl.innerHTML = '';
+                }
+                // 添加新项
+                const newIndex = depsListEl.children.length;
+                const depItem = document.createElement('div');
+                depItem.className = 'dep-item';
+                depItem.innerHTML = `
+                    <input type="text" class="dep-input" value="" data-index="${newIndex}" placeholder="请输入依赖项">
+                    <button class="delete-btn" data-index="${newIndex}">✕</button>
+                `;
+                depsListEl.appendChild(depItem);
+
+                // 聚焦新输入框
+                depItem.querySelector('.dep-input').focus();
+
+                // 调整iframe高度
+                adjustIframeHeight();
+            });
+
+            // 删除依赖项
+            document.getElementById('depsList').addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const index = parseInt(e.target.dataset.index);
+                    const depItems = document.querySelectorAll('.dep-item');
+                    // 移除DOM元素
+                    e.target.parentElement.remove();
+                    // 重新更新索引
+                    updateDepsIndex();
+                    // 调整iframe高度
+                    adjustIframeHeight();
+                }
+            });
+
+            // 输入框内容变化
+            document.getElementById('depsList').addEventListener('input', (e) => {
+                if (e.target.classList.contains('dep-input')) {
+                    const index = parseInt(e.target.dataset.index);
+                    // 实时更新数据（这里简化处理，保存时统一收集）
+                }
+            });
+
+            // 保存依赖集
+            document.getElementById('saveBtn').addEventListener('click', async () => {
+                await saveDepsData();
+            });
+
+            // 重置
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                renderDepsList([...originalDeps]);
+                showNotice('已重置为原始数据', 'info');
+                adjustIframeHeight();
+            });
+        }
+
+        // 6. 保存依赖集数据
+        async function saveDepsData() {
+            // 收集当前编辑的数据
+            const depInputs = document.querySelectorAll('.dep-input');
+            const currentDeps = Array.from(depInputs).map(input => input.value.trim()).filter(Boolean);
+
+            try {
+                const response = await fetch(POST_DEPS_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${sb3Token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ deps: currentDeps })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    window.parent.postMessage({ action: 'TOKEN_EXPIRED' }, '*');
+                    throw new Error('登录状态失效，请重新登录');
+                }
+
+                const result = await response.json();
+                if (result.code !== 200) {
+                    throw new Error(`保存失败：${result.msg || '未知错误'}`);
+                }
+
+                // 更新原始数据
+                originalDeps = [...currentDeps];
+                showNotice('依赖集保存成功', 'success');
+            } catch (error) {
+                showNotice(`保存失败：${error.message}`, 'error');
+                console.error('保存失败', error);
+            }
+        }
+
+        // 7. 调整iframe高度（通知主应用）
+        function adjustIframeHeight() {
+            if (window !== window.top) {
+                const height = document.body.scrollHeight + 20; // 加20px余量
+                window.parent.postMessage({
+                    action: 'ADJUST_IFRAME_HEIGHT',
+                    payload: { height }
+                }, '*');
+            }
+        }
+
+        // 8. 调用主系统提示框（遵循通信规范）
+        function showNotice(msg, type = 'info') {
+            if (window !== window.top) {
+                window.parent.postMessage({
+                    action: 'SHOW_NOTICE',
+                    payload: { msg, type }
+                }, '*');
+            } else {
+                // 调试模式降级
+                alert(`[${type}] ${msg}`);
+            }
+        }
+
+        // 9. 更新依赖项索引（删除后重新排序）
+        function updateDepsIndex() {
+            const depItems = document.querySelectorAll('.dep-item');
+            depItems.forEach((item, index) => {
+                const input = item.querySelector('.dep-input');
+                const deleteBtn = item.querySelector('.delete-btn');
+                input.dataset.index = index;
+                deleteBtn.dataset.index = index;
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

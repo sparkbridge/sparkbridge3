@@ -95,7 +95,7 @@ spark.web.registerApi("GET", "/filemanager/list", (req, res) => {
         console.error('获取文件列表失败：', error);
         res.json({ code: 500, message: "获取文件列表失败：" + error.message });
     }
-}, false);
+});
 
 /**
  * 读取文件内容
@@ -131,7 +131,7 @@ spark.web.registerApi("GET", "/filemanager/read", (req, res) => {
         console.error('读取文件失败：', error);
         res.json({ code: 500, message: "读取文件失败：" + error.message });
     }
-}, false);
+});
 
 /**
  * 保存文件内容
@@ -173,7 +173,7 @@ spark.web.registerApi("POST", "/filemanager/save", (req, res) => {
         console.error('保存文件失败：', error);
         res.json({ code: 500, message: "保存文件失败：" + error.message });
     }
-}, false);
+});
 
 /**
  * 新建文件夹
@@ -211,7 +211,7 @@ spark.web.registerApi("POST", "/filemanager/mkdir", (req, res) => {
         console.error('创建文件夹失败：', error);
         res.json({ code: 500, message: "创建文件夹失败：" + error.message });
     }
-}, false);
+});
 
 /**
  * 新建文件
@@ -256,7 +256,7 @@ spark.web.registerApi("POST", "/filemanager/touch", (req, res) => {
         console.error('创建文件失败：', error);
         res.json({ code: 500, message: "创建文件失败：" + error.message });
     }
-}, false);
+});
 
 // ========================
 // 4. 导出模块（可选）

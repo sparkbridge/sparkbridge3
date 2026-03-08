@@ -113,7 +113,7 @@ class SparkCore extends EventEmitter {
                 }
             },
             // file: require('../handles/file'),
-            getFileHelper: () =>{return new (require('../handles/file')).FileObj(pluginName)},
+            getFileHelper: (pl_name) =>{return new (require('../handles/file')).FileObj(pl_name)},
             getLogger: () => require('../handles/logger').getLogger(pluginName)
 
         };

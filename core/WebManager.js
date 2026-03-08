@@ -27,7 +27,7 @@ class WebManager {
             admin_password: '*',
             jwt_secret: 'SparkBridge3_Default_Secret',
             host: "127.0.0.1",
-            port: 3001
+            port: 3002
         })
         this.config = JSON.parse(this.fileHelper.read('config.json') || '{}');
 

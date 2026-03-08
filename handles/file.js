@@ -14,6 +14,7 @@ if (typeof mc !== 'undefined') {
 
 class FileObj {
     constructor(plugin_name) {
+        // console.log('[FileObj]', plugin_name);
         this.pname = plugin_name;
         const dirPath = PLUGIN_DATA_DIR + '/' + this.pname;
         if (!exists(dirPath)) {

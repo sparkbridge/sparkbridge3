@@ -6,7 +6,7 @@ plugins/examples/
 ./sparkbridge.zip
 sparkbridge3.zip
 web/
-
+/plugins/list.json
 # idea
 .vscode/
 

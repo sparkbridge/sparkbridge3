@@ -90,9 +90,25 @@ const xbox = {
 }
 
 // 兼容SB2
-spark.env.set('mc', xbox);
+// spark.env.set('mc', xbox);
 
-// console.log(config)
+spark.on('core.ready', () => {
+    const registerRegexAction = spark.env.get('regex.register_action');
+
+    if (registerRegexAction) {
+        registerRegexAction('getXboxID', async (params, pack, context) => {
+            // params 此时已经经过了解析
+
+            // 直接返回一个键值对对象！
+            // console.log(params);
+            if(get_xbox_by_qid(pack.sender.user_id) != undefined){
+                return { xbox: get_xbox_by_qid(pack.sender.user_id).xbox };
+            }else{
+                return { xbox: "无" };
+            }
+        });
+    }
+});
 
 if(config.enable){
     // console.log("已启用白名单绑定");

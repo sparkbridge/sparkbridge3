@@ -81,10 +81,10 @@ function formatMsg(msg) {
     const formattedMessages = msg.map((t) => {
         switch (t.type) {
             case 'at':
-                if (spark.env.get('mc').getXbox(t.data.qq) == undefined) {
+                if (spark.env.get('get_xbox_by_qid')(t.data.qq) == undefined) {
                     return '@' + t.data.qq;
                 } else {
-                    return '@' + spark.env.get('mc').getXbox(t.data.qq).xbox;
+                    return '@' + spark.env.get('get_xbox_by_qid')(t.data.qq).xbox;
                 }
             case 'text':
                 return replacePlaceholders(conf.text_format, t.data.text);

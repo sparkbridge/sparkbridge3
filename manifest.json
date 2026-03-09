@@ -1,14 +1,14 @@
 {
-  "entry": "index.js",
-  "name": "sparkbridge3",
-  "type": "lse-nodejs",
-  "version": "3.0.0",
-  "author": "Sbaoor",
-  "description": "a modern qq bot system",
-  "dependencies": [
-    {
-      "name": "legacy-script-engine-nodejs"
-    }
-  ],
-  "optionalDependencies": []
+    "entry": "index.js",
+    "name": "sparkbridge3",
+    "type": "lse-nodejs",
+    "version": "3.0.0",
+    "author": "Sbaoor",
+    "description": "a modern qq bot system",
+    "dependencies": [
+        {
+            "name": "legacy-script-engine-nodejs"
+        }
+    ],
+    "optionalDependencies": []
 }

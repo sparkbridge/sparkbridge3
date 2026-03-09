@@ -1,6 +1,7 @@
 const { text, at, image, build } = require('../../handles/msgbuilder');
 const fhelper = require('../../handles/file');
 
+
 // 1. 初始化文件助手 (使用我们的 File API)
 const fileObj = new fhelper.FileObj('sb3_regex');
 
@@ -13,11 +14,33 @@ const defaultConfig = { enable: true, admin_debug: false,book:false,book_url:"",
 
 fileObj.initFile("rules.json", [
     {
-        "id": "4a3gynzms",
-        "name": "查询人数",
+        "id": "w1kx8e0yl",
+        "name": "查询白名单",
         "enabled": true,
         "triggerType": "message",
-        "pattern": "查服",
+        "pattern": "^查ID(.+)",
+        "flags": "i",
+        "eventType": "group.member_join",
+        "conditions": [],
+        "actions": [
+            {
+                "id": "9flsmhgeb",
+                "type": "callPluginCommand",
+                "params": "getXboxID,$at"
+            },
+            {
+                "id": "spgky3s3x",
+                "type": "replyText",
+                "params": "$xbox"
+            }
+        ]
+    },
+    {
+        "id": "4a3gynzms",
+        "name": "查询在线人数",
+        "enabled": true,
+        "triggerType": "message",
+        "pattern": "^查服$",
         "flags": "i",
         "eventType": "group.member_join",
         "conditions": [],
@@ -62,18 +85,6 @@ fileObj.initFile("rules.json", [
                 "params": "$result"
             }
         ]
-    },
-    {
-        id: 'rule_101', name: '辱骂词汇拦截', enabled: true, triggerType: 'message',
-        pattern: '(tmd|sb|卧槽|滚)', flags: 'ig', eventType: '',
-        conditions: [{ id: 'c1', field: 'userRole', operator: '!=', value: 'admin' }],
-        actions: [{ id: 'a1', type: 'deleteMessage', params: '' }, { id: 'a2', type: 'muteUser', params: '600' }]
-    },
-    {
-        id: 'rule_103', name: '新人入群欢迎', enabled: true, triggerType: 'event',
-        pattern: '', flags: '', eventType: 'group.member_join',
-        conditions: [{ id: 'c4', field: 'groupId', operator: '==', value: '123456789' }],
-        actions: [{ id: 'a5', type: 'replyText', params: '欢迎 $userId 加入本群！' }]
     }
 ],false);
 let rules = JSON.parse(fileObj.read('rules.json'))
@@ -150,8 +161,14 @@ function registerAction(actionType, handlerFunction) {
 if (spark.env && spark.env.set) {
     spark.env.set('regex.register_action', registerAction);
     // console.log(spark.env.get("regex.register_action"));
-    logger.info('已将自定义动作注册接口挂载到全局变量池: regex.register_action');
+    // logger.info('已将自定义动作注册接口挂载到全局变量池: regex.register_action');
 }
+
+function getAt(message) {
+    const atSegment = message.find(item => item.type === 'at');
+    return atSegment ? { find: true, qq: atSegment.data.qq } : { find: false, qq: null };
+}
+
 
 /**
  * 文本变量替换引擎
@@ -167,6 +184,15 @@ function parseVariables(text, pack, context) {
         // 1. 优先匹配系统内置变量
         if (varName === 'userId') return pack.user_id;
         if (varName === 'groupId') return pack.group_id;
+        if (varName === 'at') {
+            let at = getAt(pack.message);
+            if (at.find){
+                return at.qq;
+            }else{
+                return pack.user_id;
+
+            }
+        };
         if (varName === 'nickname') return pack.sender ? pack.sender.nickname : '';
 
         // 2. 匹配上下文中的动态变量 (包括 executeCommand 的 result，或第三方插件返回的 kv)
@@ -203,17 +229,17 @@ async function executeActions(actions, pack, matchResult = []) {
 
     for (const action of actions) {
         try {
-            if (customActionsRegistry[action.type]) {
-                const parsedParams = parseVariables(action.params, pack, actionContext);
-                const ret = await customActionsRegistry[action.type](parsedParams, pack, actionContext);
+            // if (customActionsRegistry[action.type]) {
+            //     const parsedParams = parseVariables(action.params, pack, actionContext);
+            //     const ret = await customActionsRegistry[action.type](parsedParams, pack, actionContext);
 
-                if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
-                    Object.assign(actionContext, ret);
-                } else if (ret !== undefined) {
-                    actionContext.result = String(ret);
-                }
-                continue;
-            }
+            //     if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
+            //         Object.assign(actionContext, ret);
+            //     } else if (ret !== undefined) {
+            //         actionContext.result = String(ret);
+            //     }
+            //     continue;
+            // }
 
             switch (action.type) {
                 case 'replyText': {
@@ -237,11 +263,34 @@ async function executeActions(actions, pack, matchResult = []) {
                     actionContext.result = res.output || (res.success ? "执行成功" : "执行失败");
                     break;
                 }
+                case 'replyImage': {
+                    let parsedImage = parseVariables(action.params, pack, actionContext);
+                    await spark.QClient.sendGroupMsg(pack.group_id, image(parsedImage));
+                    break;
+                }
+                case 'callPluginCommand':{
+                    let command = action.params.split(',')[0];
+                    if (customActionsRegistry[command]){
+                        const parsedParams = parseVariables(action.params, pack, actionContext);
+                        // console.log(parsedParams);
+                        let command_params = parsedParams.split(',').slice(1);
+                        const ret = await customActionsRegistry[command](command_params, pack, actionContext);
+                        if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
+                                Object.assign(actionContext, ret);
+                            } else if (ret !== undefined) {
+                                actionContext.result = String(ret);
+                            }
+                    }else{
+                        logger.error(`[正则模块] 插件动作 ${command} 未注册，请检查插件是否正确安装或配置！`);
+                    }
+                    break;
+                }
                 default:
-                    console.warn(`[正则模块] 未知动作类型: ${action.type}`);
+                    logger.error(`[正则模块] 未知动作类型: ${action.type}`);
             }
         } catch (err) {
-            console.error(`[正则模块] 执行动作 ${action.type} 失败:`, err.message);
+            logger.error(`[正则模块] 执行动作 ${action.type} 失败:`);
+            console.error(err);
         }
     }
 }
@@ -308,6 +357,13 @@ function checkConditions(conditions, pack) {
     });
 }
 
+function reBuildRawMessage(message) {
+    return message
+        .filter(item => item.type === 'text')
+        .map(item => item.data.text)
+        .join('');
+}
+
 // ==========================================
 // 模块 D: 核心匹配引擎
 // ==========================================
@@ -315,7 +371,7 @@ spark.on('message.group.normal', async (pack) => {
     if (!conf.enable || pack.post_type !== 'message' || pack.message_type !== 'group') return;
     if (pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true) return;
 
-    const msgText = pack.raw_message.trim();
+    const msgText = reBuildRawMessage(pack.message);
 
     for (const rule of messageRegex) {
         if (!rule.enabled || rule.triggerType !== 'message') continue;

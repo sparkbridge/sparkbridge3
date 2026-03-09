@@ -38,4 +38,4 @@ spark.web.registerApi("POST", "/deps/list", (req, res) => {
 });
 
 loadDeps();
-console.log(deps);
+// console.log(deps);

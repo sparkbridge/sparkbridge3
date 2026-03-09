@@ -5,7 +5,7 @@ tmp/
 plugins/examples/
 ./sparkbridge.zip
 sparkbridge3.zip
-web/
+/web/
 /plugins/list.json
 /publish.bat
 # idea

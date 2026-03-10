@@ -8,7 +8,8 @@ const { FileObj } = require('../handles/file'); // 引入文件操作类
 const authRoutes = require('./routes/auth');
 const pluginRoutes = require('./routes/plugin');
 const overviewRoutes = require('./routes/overview');
-
+const installRoutes = require('./routes/upload');
+const toggleRoutes = require('./routes/toggle');    
 
 class WebManager {
     constructor(core) {
@@ -90,6 +91,8 @@ class WebManager {
         this.app.use('/api/auth', authRoutes(this));
         this.app.use('/api/plugins', pluginRoutes(this));
         this.app.use('/api/overview', overviewRoutes(this));
+        this.app.use('/api/plugins', installRoutes(this));
+        this.app.use('/api/plugins', toggleRoutes(this));
     }
     generateRandomString(length) {
         var result = '';
@@ -115,6 +118,23 @@ class WebManager {
         this.app.listen(this.port, this.host, () => {
             logger.info(`Web 控制面板已启动: http://${this.host === '0.0.0.0' ? '127.0.0.1' : this.host}:${this.port}`);
         });
+        spark.on('core.ready', () => {
+            // 使用新版 Fluent API 生成名为 base 的核心设置项
+            spark.web.createConfig("web")
+                .text("host", this.config.host, "本地监听地址")
+                .number("port", this.config.port, "监听端口")
+                .text("admin_password", this.config.admin_password, "管理员密码")
+                .register();
+
+            // 监听 Web 前端修改了 base 配置的事件
+            spark.on("config.update.web", (key, newValue) => {
+                // console.log(`收到 Web 前端修改了核心配置 [${key}] 的事件。`);
+                this.config[key] = newValue;
+                this.fileHelper.write('config.json', JSON.stringify(this.config, null, 4));
+            })
+        });
+
+
     }
 
     // 供插件动态调用的 API

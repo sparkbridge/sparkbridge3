@@ -1,0 +1,37 @@
+[
+    {
+        "name": "bridgebase",
+        "version": "0.0.2",
+        "author": "lition",
+        "desc": "sb2到sb3适配器，转换一些特殊api (商店最新版)",
+        "tags": [
+            "official",
+            "adapter"
+        ],
+        "repo": "https://github.com/example/bridgebase",
+        "downloadUrl": "https://github.com/example/bridgebase/releases/latest/download/bridgebase.zip"
+    },
+    {
+        "name": "base",
+        "version": "3.0.0",
+        "author": "SparkBridge3 Official",
+        "desc": "SparkBridge3 核心配置",
+        "tags": [
+            "core",
+            "official"
+        ],
+        "repo": "https://github.com/example/base"
+    },
+    {
+        "name": "bilibili_parser",
+        "version": "1.2.0",
+        "author": "community_dev",
+        "desc": "这是一个自定义直链下载的测试插件。",
+        "tags": [
+            "media",
+            "tool"
+        ],
+        "repo": "https://example.com/bili",
+        "downloadUrl": "https://api.example.com/downloads/bili.zip"
+    }
+]

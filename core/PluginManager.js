@@ -25,7 +25,17 @@ class PluginManager {
                     name: 'base',
                     version: '3.0.0',
                     description: 'SparkBridge3 核心配置',
-                    author: 'SparkBridge'
+                    author: 'SparkBridge3 Official'
+                },
+                status: 'loaded', // 核心配置默认即为加载成功
+                virtual: true     // 标记为虚拟插件，不执行实际的加载逻辑
+            },
+            'web':{
+                info: {
+                    name: 'web',
+                    version: '3.0.0',
+                    description: 'SparkBridge3 Web控制面板',
+                    author: 'SparkBridge3 Official'
                 },
                 status: 'loaded', // 核心配置默认即为加载成功
                 virtual: true     // 标记为虚拟插件，不执行实际的加载逻辑
@@ -38,6 +48,65 @@ class PluginManager {
      * 第一步：同步文件夹与 list.json
      * 自动发现新插件，移除已删除插件，并补全默认 spark.json
      */
+    // syncPlugins() {
+    //     let savedList = [];
+    //     if (fs.existsSync(this.listFile)) {
+    //         savedList = JSON.parse(fhelper.read(this.listFile) || '[]');
+    //     }
+
+    //     const currentFolders = fs.readdirSync(this.pluginsDir).filter(f =>
+    //         fs.statSync(path.join(this.pluginsDir, f)).isDirectory()
+    //     );
+
+    //     const currentListObj = {};
+
+    //     currentFolders.forEach(folder => {
+    //         const sparkJsonPath = path.join(this.pluginsDir, folder, 'spark.json');
+    //         if (!fs.existsSync(sparkJsonPath)) return;
+
+    //         let info = JSON.parse(fhelper.read(sparkJsonPath));
+    //         let modified = false;
+
+    //         // 补全缺失字段
+    //         if (!info.priority) { info.priority = 'post'; modified = true; }
+    //         if (!info.permission) { info.permission = 'core'; modified = true; }
+    //         if (typeof info.load === 'undefined') { info.load = true; modified = true; }
+
+    //         if (modified) fhelper.writeTo(sparkJsonPath, JSON.stringify(info, null, 2));
+
+    //         const priorityVal = PRIORITY_MAP[info.priority] || 0;
+    //         currentListObj[info.name] = { folder, info, priorityVal };
+    //     });
+
+    //     // 对比并更新 list.json 逻辑
+    //     for (const name in currentListObj) {
+    //         const folder = currentListObj[name].folder;
+    //         if (!savedList.includes(folder)) {
+    //             logger.info(`发现新插件: ${name} (${folder})`);
+    //             savedList.push(folder);
+    //         }
+    //     }
+    //     savedList = savedList.filter(folder => currentFolders.includes(folder));
+
+    //     fhelper.writeTo(this.listFile, JSON.stringify(savedList, null, 2));
+
+    //     // 按优先级降序排序
+    //     const sortedArray = Object.values(currentListObj).sort((a, b) => b.priorityVal - a.priorityVal);
+
+    //     sortedArray.forEach(item => {
+    //         if (item.info.name !== 'base'  && item.info.name !== 'web'){
+    //             this.sortedPluginNames.push(item.info.name);
+    //             this.pluginsRegistry[item.info.name] = {
+    //                 ...item,
+    //             status: 'pending' // 初始状态
+    //         };
+    //         }
+            
+    //     });
+
+    //     logger.info(`共检测到 ${this.sortedPluginNames.length} 个有效插件`);
+    //     this.sortedPluginNames.push("base")
+    // }
     syncPlugins() {
         let savedList = [];
         if (fs.existsSync(this.listFile)) {
@@ -57,7 +126,6 @@ class PluginManager {
             let info = JSON.parse(fhelper.read(sparkJsonPath));
             let modified = false;
 
-            // 补全缺失字段
             if (!info.priority) { info.priority = 'post'; modified = true; }
             if (!info.permission) { info.permission = 'core'; modified = true; }
             if (typeof info.load === 'undefined') { info.load = true; modified = true; }
@@ -68,7 +136,6 @@ class PluginManager {
             currentListObj[info.name] = { folder, info, priorityVal };
         });
 
-        // 对比并更新 list.json 逻辑
         for (const name in currentListObj) {
             const folder = currentListObj[name].folder;
             if (!savedList.includes(folder)) {
@@ -80,33 +147,52 @@ class PluginManager {
 
         fhelper.writeTo(this.listFile, JSON.stringify(savedList, null, 2));
 
-        // 按优先级降序排序
+        // ==========================================
+        // 核心修复区域：处理运行时热重载的状态保留
+        // ==========================================
+
+        // 修复 Bug 1: 每次扫描前，先清空排序数组，防止重复 push
+        this.sortedPluginNames = [];
+
         const sortedArray = Object.values(currentListObj).sort((a, b) => b.priorityVal - a.priorityVal);
 
         sortedArray.forEach(item => {
-            if (item.info.name !== 'base'){
+            if (item.info.name !== 'base' && item.info.name !== 'web') {
                 this.sortedPluginNames.push(item.info.name);
-                this.pluginsRegistry[item.info.name] = {
-                    ...item,
-                status: 'pending' // 初始状态
-            };
+
+                // 修复 Bug 2: 检查内存中是否已经存在该插件
+                const existingPlugin = this.pluginsRegistry[item.info.name];
+
+                if (existingPlugin) {
+                    // 如果是已经加载的老插件，合并最新配置，但【强制保留原有的运行状态】
+                    this.pluginsRegistry[item.info.name] = {
+                        ...existingPlugin, // 保留老数据
+                        ...item,           // 覆盖新文件夹路径和 info
+                        status: existingPlugin.status // 绝对保留 status ('loaded', 'crashed' 等)
+                    };
+                } else {
+                    // 如果是刚下载/拖拽进来的全新插件，才赋予 pending 状态
+                    this.pluginsRegistry[item.info.name] = {
+                        ...item,
+                        status: 'pending'
+                    };
+                }
             }
-            
         });
 
         logger.info(`共检测到 ${this.sortedPluginNames.length} 个有效插件`);
-        this.sortedPluginNames.push("base")
+        this.sortedPluginNames.push("base");
     }
 
     /**
-     * 第二步：执行加载所有插件
+     * 第二步：执行加载所有插件virtual
      */
     loadAll() {
         this.syncPlugins();
 
         logger.info('=== 开始加载插件 ===');
         for (const name of this.sortedPluginNames) {
-            if(name !== 'base') this.loadSinglePlugin(name);
+            if(name !== 'base' && name !== 'web') this.loadSinglePlugin(name);
         }
 
         // 将加载结果通过 Core 传递给 WebManager 供网页展示

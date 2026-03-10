@@ -1,7 +1,7 @@
 {
     "name": "sb3_mc",
     "version": "1.0.0",
-    "author": "sb_team",
+    "author": "SparkBridge3 Official",
     "desc": "mc命令执行插件",
     "permission": "key",
     "priority": "post",

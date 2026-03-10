@@ -1,6 +1,6 @@
 {
   "name": "sparkbridge3",
-  "version": "3.0.7",
+  "version": "3.0.9",
   "description": "a qq bot and mc server adapter",
   "main": "index.js",
   "scripts": {
@@ -17,12 +17,14 @@
   },
   "homepage": "https://github.com/sparkbridge/sparkbridge3#readme",
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "dayjs": "^1.11.19",
     "express": "^5.2.1",
     "json5": "^2.2.3",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "node-schedule": "^2.1.1",
     "pinyin-pro": "^3.28.0",
     "systeminformation": "^5.31.2",

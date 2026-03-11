@@ -211,17 +211,21 @@ class OneBotWSAdapter extends BaseAdapter {
         })
     }
 
-    sendGroupForwardMsg(gid, msg) {
+    async sendGroupForwardMsg(gid, msg) {
         let tmp_id = uuid();
        this.sendWSPack(packbuilder.GroupForwardMessagePack(gid, msg, tmp_id));
-        return new Promise((res, rej) => {
-            this.once('packid_' + tmp_id, (data) => {
-                res(data);
+        try {
+            return await new Promise((res, rej) => {
+                this.once('packid_' + tmp_id, (data) => {
+                    res(data);
+                });
+                setTimeout(() => {
+                    rej({ reason: 'timeout' });
+                }, 10e3);
             });
-            setTimeout(() => {
-                rej({ reason: 'timeout' });
-            }, 10e3);
-        }).catch(this.defaultErrorHandler);
+        } catch (error) {
+            return this.defaultErrorHandler(error);
+        }
     }
 
     sendGroupBan(gid, mid, d) {

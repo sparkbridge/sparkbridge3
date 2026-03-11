@@ -21,7 +21,7 @@ spark.web.createConfig("sb3_wl")
 
 spark.on("config.update.sb3_wl", (key, val) => {
     config[key] = val;
-    fileObj.write('config.json', conf); // 持久化保存
+    fileObj.write('config.json', config); // 持久化保存
     // logger.info(`基础配置已更新并保存本地: ${key} -> ${val}`);
 });
 

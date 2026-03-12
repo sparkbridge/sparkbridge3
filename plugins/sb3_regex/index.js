@@ -465,12 +465,12 @@ async function handleEvent(currentEventType, pack) {
     }
 }
 
-spark.on('notice.group.increase', async (pack) => {
+spark.on('notice.group_increase', async (pack) => {
     if(pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true)return;
     await handleEvent('group.member_join', pack);
 });
 
-spark.on('notice.group.decrease', async (pack) => {
+spark.on('notice.group_decrease', async (pack) => {
     if (pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true) return;
     await handleEvent('group.member_leave', pack);
 });

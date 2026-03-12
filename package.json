@@ -1,6 +1,6 @@
 {
   "name": "sparkbridge3",
-  "version": "3.0.9",
+  "version": "3.0.10",
   "description": "a qq bot and mc server adapter",
   "main": "index.js",
   "scripts": {

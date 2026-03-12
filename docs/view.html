@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Release 全量下载统计</title>
+    <style>
+        :root {
+            --gh-blue: #0969da;
+            --gh-green: #2ea44f;
+            --gh-gray: #f6f8fa;
+            --border-color: #d0d7de;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #ffffff;
+        }
+
+        .config-panel {
+            background: var(--gh-gray);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.5fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #57606a;
+        }
+
+        input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 9px 20px;
+            background-color: var(--gh-green);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* 总计看板样式 */
+        .summary-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            background: #fff;
+        }
+
+        .big-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gh-green);
+            margin: 10px 0;
+        }
+
+        .file-summary-table {
+            width: 100%;
+            font-size: 13px;
+            border-collapse: collapse;
+        }
+
+        .file-summary-table th {
+            text-align: left;
+            color: #57606a;
+            border-bottom: 1px solid #eee;
+            padding: 5px;
+        }
+
+        .file-summary-table td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #f9f9f9;
+        }
+
+        /* Release 详情样式 */
+        .release-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .release-header {
+            background: var(--gh-gray);
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tag-badge {
+            background: #ddf4ff;
+            color: var(--gh-blue);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background: #fafafa;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .download-count {
+            font-weight: 600;
+            color: var(--gh-blue);
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>GitHub Release 统计看板</h2>
+
+    <div class="config-panel">
+        <div class="input-row">
+            <div class="input-group">
+                <label>用户名 (Owner)</label>
+                <input type="text" id="owner" placeholder="microsoft">
+            </div>
+            <div class="input-group">
+                <label>仓库名 (Repo)</label>
+                <input type="text" id="repo" placeholder="vscode">
+            </div>
+            <div class="input-group">
+                <label>GitHub Token (可选)</label>
+                <input type="password" id="token" placeholder="ghp_xxxx">
+            </div>
+            <button onclick="fetchStats()">分析数据</button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="summary-dashboard" style="display: none;">
+        <div class="stat-card">
+            <label>所有版本总下载量</label>
+            <div id="total-all-count" class="big-number">0</div>
+            <div style="font-size: 12px; color: #666;" id="release-count-text">共计 0 个 Release 版本</div>
+        </div>
+        <div class="stat-card">
+            <label>各文件累计统计 (跨版本汇总)</label>
+            <table class="file-summary-table">
+                <thead>
+                    <tr>
+                        <th>文件名 (Asset Name)</th>
+                        <th>累计下载</th>
+                    </tr>
+                </thead>
+                <tbody id="file-summary-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function fetchStats() {
+            const owner = document.getElementById('owner').value.trim();
+            const repo = document.getElementById('repo').value.trim();
+            const token = document.getElementById('token').value.trim();
+            const resultsDiv = document.getElementById('results');
+            const dashboard = document.getElementById('dashboard');
+
+            if (!owner || !repo) return alert("请输入完整信息");
+
+            resultsDiv.innerHTML = "正在分析数据...";
+            dashboard.style.display = "none";
+
+            const headers = {};
+            if (token) headers['Authorization'] = `token ${token}`;
+
+            try {
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`, { headers });
+                if (!response.ok) throw new Error(await response.text());
+                const releases = await response.json();
+
+                let grandTotal = 0;
+                let fileMap = {}; // 用于记录不同文件的总和
+
+                // 开始解析数据
+                let releasesHtml = "";
+                releases.forEach(rel => {
+                    let releaseSum = 0;
+                    let rows = rel.assets.map(asset => {
+                        const count = asset.download_count;
+                        grandTotal += count;
+                        releaseSum += count;
+
+                        // 汇总同名文件
+                        fileMap[asset.name] = (fileMap[asset.name] || 0) + count;
+
+                        return `<tr>
+                            <td>${asset.name}</td>
+                            <td class="download-count">${count.toLocaleString()}</td>
+                            <td>${(asset.size / 1024 / 1024).toFixed(2)} MB</td>
+                        </tr>`;
+                    }).join('');
+
+                    releasesHtml += `
+                        <div class="release-card">
+                            <div class="release-header">
+                                <span><strong>${rel.tag_name}</strong></span>
+                                <span style="font-size: 13px">本版总计: <strong>${releaseSum.toLocaleString()}</strong></span>
+                            </div>
+                            <table>${rows}</table>
+                        </div>`;
+                });
+
+                // 更新看板
+                document.getElementById('total-all-count').innerText = grandTotal.toLocaleString();
+                document.getElementById('release-count-text').innerText = `共计 ${releases.length} 个 Release 版本`;
+
+                const fileSummaryBody = document.getElementById('file-summary-body');
+                fileSummaryBody.innerHTML = Object.entries(fileMap)
+                    .sort((a, b) => b[1] - a[1]) // 按下载量排序
+                    .map(([name, count]) => `<tr><td>${name}</td><td class="download-count">${count.toLocaleString()}</td></tr>`)
+                    .join('');
+
+                dashboard.style.display = "grid";
+                resultsDiv.innerHTML = `<h3 style="margin-top:30px">历史版本详情</h3>` + releasesHtml;
+
+            } catch (err) {
+                resultsDiv.innerHTML = `<p style="color:red">错误: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

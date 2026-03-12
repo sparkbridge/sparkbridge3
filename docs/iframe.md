@@ -33,7 +33,7 @@ SparkBridge3 的主应用使用 `sb3_token` 进行鉴权，并且我们刚刚封
 
 1. **获取 Token**：
 插件页面不能直接读取主应用的 `localStorage`（如果是跨域 iframe 会被浏览器拦截）。
-* **标准做法**：插件页面加载后，通过 `window.parent.postMessage` 向主应用索要 Token；或者主应用在拼接 iframe URL 时，直接带上短效令牌 `?token=xxx`。
+* **标准做法**：插件页面加载后，通过 `window.parent.postMessage` 向主应用索要 Token；
 
 
 2. **统一的 403 处理**：

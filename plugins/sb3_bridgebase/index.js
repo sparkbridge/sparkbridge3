@@ -1,8 +1,8 @@
 const { msgbuilder, packbuilder } = spark;
 const parseCQString  = require('../../handles/parserCQString').parse;
 const lg = require('../../handles/logger')
-const logger = lg.getLogger('QClient');
-const JSON5 = require('json5');
+const logger = lg.getLogger();
+// const JSON5 = require('json5');
 
 // function text(str) {
 //     if (typeof str == 'string') return msgbuilder.text(str);
@@ -75,6 +75,8 @@ spark.on('gocq.pack', (pack) => {
             spark.emit(`${POST_TYPE}.${pack.message_type}.${pack.sub_type}`, pack, build_reply(pack.group_id == undefined ? pack.user_id : pack.group_id, pack.message_type, pack.message_id));
             break;
         case 'notice':
+            if(spark.debug)
+                logger.info(`触发 ${POST_TYPE}.${pack.notice_type}`)
             spark.emit(`${POST_TYPE}.${pack.notice_type}`, pack)
             break;
         case 'request':

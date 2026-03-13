@@ -1,6 +1,6 @@
 {
   "name": "sparkbridge3",
-  "version": "3.0.10",
+  "version": "3.0.11",
   "description": "a qq bot and mc server adapter",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/sparkbridge/sparkbridge3#readme",
   "dependencies": {
+    "@umami/node": "^0.4.0",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.6",
     "cors": "^2.8.6",

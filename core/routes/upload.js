@@ -4,6 +4,7 @@ const AdmZip = require('adm-zip');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const tracker = require('../../handles/umami');
 // ==========================================
 // 全局任务状态机 (保存在内存中)
 // ==========================================
@@ -138,6 +139,7 @@ module.exports = (webManager) => {
             taskState.currentTask.msg = '安装完成';
             taskState.currentTask.progress = 100;
             taskState.currentTask.plugin = { name: pluginName, version: pluginVersion };
+            tracker.trackEvent('install_plugin', { name: pluginName, version: pluginVersion });
 
             // 【触发热加载】
             if (webManager?.core?.pluginManager) {

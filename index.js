@@ -4,12 +4,10 @@ const JSON5 = require('json5'); // 支持带注释的 JSON 格式
 const fhelper = require('./handles/file');
 const lg = require('./handles/logger');
 const logger = lg.getLogger('sparkbridge3');
-
+const tracker = require("./handles/umami");
 const SparkCore = require('./core/SparkCore');
 const OneBotWSAdapter = require('./adapters/OneBotWSAdapter');
 console.log(fhelper.read(path.join(__dirname, 'logo.txt')));
-
-
 
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -20,7 +18,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // ==========================================
 let rootFileObj = new fhelper.FileObj('base');
 let rawConfig = rootFileObj.read('config.json');
-
+tracker.trackEvent("startup", { v: ME.version });
 // 定义默认的核心与全局共享配置
 const defaultConfig = {
     target: "ws://127.0.0.1:3001",
@@ -152,5 +150,6 @@ core.on("config.update.base", (key, newValue) => {
 // ==========================================
 core.start().then(() => {
     core.emit('core.ready');
+
     logger.info(`✨ SparkBridge3 启动完毕！当前核心版本: ${ME.version} ✨`);
 }).catch(e =>{console.log(e); logger.error("框架启动失败: ", e)});

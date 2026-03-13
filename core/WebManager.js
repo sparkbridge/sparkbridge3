@@ -149,21 +149,24 @@ class WebManager {
     }
 
     registerConfig(configBuilder) {
+        // console.log(configBuilder)
         // 这里的 configBuilder 就是你在 SparkCore 里构建的 schema 对象
         this.pluginsConfigSchema[configBuilder.name] = {
             name: configBuilder.name,
             items: configBuilder.items // 包含 type, key, val, desc 等
         };
+        // console.log(this.pluginsConfigSchema)
 
         logger.info(`[Web] 已注册插件配置表单: ${configBuilder.name}`);
     }
 
-    registerCustomPage(pluginName, title, relativePath) {
-        const fullPath = `/plugin-views/${pluginName}/${relativePath}`;
+    registerCustomPage(pluginName, folder, title, relativePath) {
+        const fullPath = `/plugin-views/${folder}/${relativePath}`;
+
         if (!this.customPages.find(p => p.url === fullPath)) {
             this.customPages.push({
                 id: `${pluginName}_${Date.now()}`,
-                pluginName,
+                pluginName, // 这里依然保存真实的中文/美化名称，供前端 UI 显示
                 title,
                 url: fullPath
             });

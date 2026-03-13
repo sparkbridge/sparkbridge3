@@ -38,12 +38,15 @@ class SparkCore extends EventEmitter {
     }
 
     // 兼容层与全局变量池
-    getLegacyAPI(pluginName = 'unknown') {
+    getLegacyAPI(pluginName = 'unknown', folder = 'unknow') {
+        // console.log(`[${pluginName}] 兼容层已启动`);
         const self = this;
         const legacyApi = {
             onBDS: typeof mc !== 'undefined',
             debug: this.config.debug,
             VERSION: '3.0.0',
+            pluginName,
+            
 
             // 新版环境变量池
             env: {
@@ -76,9 +79,10 @@ class SparkCore extends EventEmitter {
 
             // 暴露 Web 脚手架接口
             web: {
-                createConfig: (pluginName) => {
+                createConfig: (customName) => {
+                    const actualName = customName || pluginName;
                     // console.log(`[${pluginName}] 创建配置项`);
-                    const schema = { name: pluginName, items: [] };
+                    const schema = { name: actualName, items: [] };
                     const builder = {
                         text: (key, val, desc) => { schema.items.push({ type: 'text', key, val, desc }); return builder; },
                         number: (key, val, desc) => { schema.items.push({ type: 'number', key, val, desc }); return builder; },
@@ -97,7 +101,7 @@ class SparkCore extends EventEmitter {
                 },
                 registerPage: (title, relativePath) => {
                     // 这里的 pluginName 需要从 PluginManager 传入上下文时确定
-                    self.webManager.registerCustomPage(pluginName, title, relativePath);
+                    self.webManager.registerCustomPage(pluginName, folder, title, relativePath);
                 }
             },
 

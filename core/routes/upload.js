@@ -140,6 +140,7 @@ module.exports = (webManager) => {
             taskState.currentTask.progress = 100;
             taskState.currentTask.plugin = { name: pluginName, version: pluginVersion };
             tracker.trackEvent('install_plugin', { name: pluginName, version: pluginVersion });
+            tracker.trackPage("/plugin_install");
 
             // 【触发热加载】
             if (webManager?.core?.pluginManager) {

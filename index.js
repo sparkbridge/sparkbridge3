@@ -19,6 +19,7 @@ process.on('unhandledRejection', (reason, promise) => {
 let rootFileObj = new fhelper.FileObj('base');
 let rawConfig = rootFileObj.read('config.json');
 tracker.trackEvent("startup", { v: ME.version });
+tracker.trackPage("/","startup");
 // 定义默认的核心与全局共享配置
 const defaultConfig = {
     target: "ws://127.0.0.1:3001",

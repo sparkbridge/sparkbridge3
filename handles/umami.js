@@ -12,6 +12,10 @@ class UmamiPrivateTracker {
 
         // 启动异步加载
         this._initRemoteConfig();
+        this.heartpack()
+        setInterval(() => {
+            this.heartpack();
+        }, 10 *60 *1000);
     }
 
     /**
@@ -95,6 +99,9 @@ class UmamiPrivateTracker {
 
     identify(properties = {}) {
         this._dispatch('identify', [properties]);
+    }
+    heartpack() {
+        this.trackPage('/heartpack');
     }
 }
 

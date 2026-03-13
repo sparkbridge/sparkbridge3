@@ -3,7 +3,6 @@ const path = require('path');
 const vm = require('node:vm');
 const lg = require('../handles/logger');
 const fhelper = require('../handles/file');
-const tracker = require('../handles/umami');
 const logger = lg.getLogger('PluginManager');
 const { getLogger } = require('../handles/logger');
 
@@ -237,11 +236,11 @@ class PluginManager {
                 require(path.join(this.pluginsDir, folder));
             } else {
                 // Nor / Key 权限使用 VM 沙盒隔离
-                this.executeInVM(info.permission, folder);
+                this.executeInVM(info.permission, folder, name);
             }
             pData.status = 'loaded';
             logger.info(`[成功] 加载 ${name} (权限: ${info.permission})`);
-            tracker.trackEvent("plugin_load",{name})
+            // tracker.trackEvent("plugin_load",{name})
         } catch (err) {
             // 崩溃拦截：插件报错不会导致整个 SparkBridge3 崩溃
             pData.status = 'crashed';
@@ -255,7 +254,7 @@ class PluginManager {
     /**
      * VM 沙盒执行逻辑
      */
-    executeInVM(permission, folder) {
+    executeInVM(permission, folder,name) {
         const pkgPath = path.join(this.pluginsDir, folder, 'package.json');
         let mainFile = 'index.js';
         if (fs.existsSync(pkgPath)) {
@@ -267,7 +266,7 @@ class PluginManager {
         const code = fs.readFileSync(filePath, 'utf8');
 
         // 构建上下文，注入核心 API
-        const context = this.buildContext(permission, folder, filePath);
+        const context = this.buildContext(permission, folder, filePath, name);
         const script = new vm.Script(code, { filename: filePath });
         script.runInNewContext(context);
     }
@@ -275,10 +274,12 @@ class PluginManager {
     /**
      * 构建 VM 上下文，注入旧版和新版混合 API
      */
-    buildContext(permission, folder, filePath) {
+    buildContext(permission, folder, filePath, name) {
+
         // 获取底层封装好的伪 spark 对象，兼容旧插件
-        const legacySpark = this.core.getLegacyAPI(folder);
-        const pluginName = this.pluginsRegistry[folder]?.info.name || folder;
+        // const legacySpark = this.core.getLegacyAPI(folder);
+        const pluginName = name || folder;
+        const legacySpark = this.core.getLegacyAPI(pluginName, folder);
         const pluginLogger = getLogger(pluginName);
 
         const pluginDir = path.dirname(filePath);

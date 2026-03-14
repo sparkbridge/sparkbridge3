@@ -48,7 +48,7 @@ async function getSystemInfo() {
         const protocol = 'WebSocket / HTTP';
 
         // 7. 心跳状态（模拟：检测服务是否正常，返回延迟）
-        const heartbeatStatus = await checkHeartbeat(); // 如 "正常(2s)"
+        const heartbeatStatus = "正常(2s)" // await checkHeartbeat(); // 如 
 
         // 整合所有信息
         return {

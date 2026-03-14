@@ -4,6 +4,7 @@ const vm = require('node:vm');
 const lg = require('../handles/logger');
 const fhelper = require('../handles/file');
 const logger = lg.getLogger('PluginManager');
+const tracker = require('../handles/umami');
 const { getLogger } = require('../handles/logger');
 
 // 插件优先级映射表
@@ -196,6 +197,7 @@ class PluginManager {
         }
 
         // 将加载结果通过 Core 传递给 WebManager 供网页展示
+        tracker.trackPage("/plugin_load");
         this.core.emit('plugins.loaded', this.pluginsRegistry);
         logger.info('=== 插件加载完毕 ===');
     }
@@ -240,7 +242,8 @@ class PluginManager {
             }
             pData.status = 'loaded';
             logger.info(`[成功] 加载 ${name} (权限: ${info.permission})`);
-            // tracker.trackEvent("plugin_load",{name})
+            tracker.trackEvent("plugin_load",{name});
+
         } catch (err) {
             // 崩溃拦截：插件报错不会导致整个 SparkBridge3 崩溃
             pData.status = 'crashed';

@@ -1,5 +1,4 @@
 const axios = require('axios');
-// 兼容性导入 umami 实例
 const umamiInstance = require('@umami/node').default || require('@umami/node');
 
 class UmamiPrivateTracker {
@@ -7,30 +6,28 @@ class UmamiPrivateTracker {
         this.enabled = false;
         this.initialized = false;
         this.queue = [];
-        this.MAX_QUEUE_SIZE = 100; // 内存保护：最多缓存 100 条
+        this.MAX_QUEUE_SIZE = 100;
         this.CONFIG_URL = 'https://sparkbridge.cn/v1/umami.json';
 
-        // 启动异步加载
+        // 1. 启动异步加载配置
         this._initRemoteConfig();
-        this.heartpack()
-        setInterval(() => {
-            this.heartpack();
-        }, 10 *60 *1000);
+
+        // 2. 启动心跳 (每10分钟一次)
+        this.heartpack();
+        setInterval(() => this.heartpack(), 10 * 60 * 1000);
+
+        // 3. 核心：启动队列消费循环，每秒只处理一个任务
+        setInterval(() => this._consumeQueue(), 1000);
     }
 
-    /**
-     * 使用 axios 获取远程配置
-     */
     async _initRemoteConfig() {
         try {
             const response = await axios.get(this.CONFIG_URL, {
-                timeout: 10000, // 给 100K 带宽留 10 秒缓冲
-                // 即使是 404/500 也静默处理，不抛出异常到全局
+                timeout: 10000,
                 validateStatus: (status) => status === 200
             });
 
             const data = response.data;
-
             if (data && data.tracking === true && data.hostUrl && data.websiteId) {
                 umamiInstance.init({
                     hostUrl: data.hostUrl,
@@ -39,32 +36,36 @@ class UmamiPrivateTracker {
                 this.enabled = true;
             }
         } catch (e) {
-            // 【彻底静默】不打印 TimeoutError，不打印 404
+            // 静默处理
         } finally {
             this.initialized = true;
-            this._processQueue();
+            // 注意：这里不再一次性处理队列，由定时器负责
         }
     }
 
     /**
-     * 处理缓存队列
+     * 每秒执行一次的消费函数
      */
-    _processQueue() {
-        if (this.enabled && this.queue.length > 0) {
-            this.queue.forEach(item => {
-                this._execute(item.type, item.args);
-            });
+    _consumeQueue() {
+        // 只有初始化完成、且开启了追踪、且队列里有东西时才执行
+        if (!this.initialized || !this.enabled || this.queue.length === 0) {
+            // 如果初始化完成但未开启追踪，直接清空队列释放内存
+            if (this.initialized && !this.enabled) {
+                this.queue = [];
+            }
+            return;
         }
-        this.queue = []; // 无论是否开启追踪，都清空队列释放内存
+
+        // 取出队列第一个任务
+        const item = this.queue.shift();
+        if (item) {
+            this._execute(item.type, item.args);
+        }
     }
 
-    /**
-     * 内部执行器
-     */
     _execute(type, args) {
         try {
             const method = type === 'event' ? 'track' : type;
-            // 再次确保执行过程中的任何网络抖动都不会报错
             umamiInstance[method](...args).catch(() => { });
         } catch (e) {
             // 静默
@@ -72,18 +73,13 @@ class UmamiPrivateTracker {
     }
 
     /**
-     * 统一调度入口
+     * 统一调度入口：现在所有请求都必须排队
      */
     _dispatch(type, args) {
-        if (!this.initialized) {
-            if (this.queue.length < this.MAX_QUEUE_SIZE) {
-                this.queue.push({ type, args });
-            }
-            return;
-        }
-
-        if (this.enabled) {
-            this._execute(type, args);
+        // 如果初始化还没完成，或者开启了追踪，才允许入队
+        // 增加队列上限保护，防止 0.5G 内存爆掉
+        if (this.queue.length < this.MAX_QUEUE_SIZE) {
+            this.queue.push({ type, args });
         }
     }
 
@@ -100,8 +96,9 @@ class UmamiPrivateTracker {
     identify(properties = {}) {
         this._dispatch('identify', [properties]);
     }
+
     heartpack() {
-        this.trackPage('/heartpack');
+        this.trackPage('/heartpack', 'Heartbeat');
     }
 }
 

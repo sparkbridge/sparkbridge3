@@ -1,0 +1,10 @@
+{
+    "name": "sb3_api_exporter",
+    "author": "冰凌",
+    "version": [1, 0, 0],
+    "desc": "导出 SparkBridge3 API 给其他 LLSE 插件使用",
+    "loadmode": "bds",
+    "permission": "key",
+    "priority": "post",
+    "load": true
+}

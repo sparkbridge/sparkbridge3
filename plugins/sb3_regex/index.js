@@ -9,7 +9,7 @@ const fileObj = new fhelper.FileObj('sb3_regex');
 // 模块 B: 基础配置持久化 (config.json)
 // ==========================================
 // 尝试读取本地已保存的配置，如果没有则使用默认值并立刻保存
-const defaultConfig = { enable: true, admin_debug: false,book:false,book_url:"",only_on_main:true };
+const defaultConfig = { enable: true, admin_debug: false, book: false, book_url: "", only_on_main: true };
 
 
 fileObj.initFile("rules.json", [
@@ -62,7 +62,7 @@ fileObj.initFile("rules.json", [
         "name": "执行命令",
         "enabled": true,
         "triggerType": "message",
-        "pattern": "执行(.+)",
+        "pattern": "^执行(.+)",
         "flags": "i",
         "eventType": "group.member_join",
         "conditions": [
@@ -70,7 +70,7 @@ fileObj.initFile("rules.json", [
                 "id": "8ful15hh3",
                 "field": "userRole",
                 "operator": "==",
-                "value": "admin"
+                "value": "sparkadmin"
             }
         ],
         "actions": [
@@ -86,7 +86,7 @@ fileObj.initFile("rules.json", [
             }
         ]
     }
-],false);
+], false);
 let rules = JSON.parse(fileObj.read('rules.json'))
 
 fileObj.initFile("config.json", defaultConfig);
@@ -97,24 +97,24 @@ const conf = JSON.parse(fileObj.read('config.json'));
 spark.web.createConfig("sb3_regex")
     .switch("enable", conf.enable, "是否全局启用正则引擎")
     .switch("admin_debug", conf.admin_debug, "是否开启匹配调试日志")
-    .switch("book",conf.book,"是否开启订阅功能")
-    .text("book_url",conf.book_url,"订阅链接")
-    .switch("only_on_main",conf.only_on_main,"是否仅对主群生效")
+    .switch("book", conf.book, "是否开启订阅功能")
+    .text("book_url", conf.book_url, "订阅链接")
+    .switch("only_on_main", conf.only_on_main, "是否仅对主群生效")
     .register();
 
-spark.web.registerApi("GET","/regexengine/list",(req,res)=>{
-    res.json({code:200,data:rules})
-},false);
-spark.web.registerApi("POST","/regexengine/save",(req,res)=>{ 
+spark.web.registerApi("GET", "/regexengine/list", (req, res) => {
+    res.json({ code: 200, data: rules })
+}, false);
+spark.web.registerApi("POST", "/regexengine/save", (req, res) => {
     const data = req.body;
     // console.log(data);
     rules = data;
     splitRegex();
     fileObj.write('rules.json', rules);
-    res.json({code:200,message:"保存成功"});
-},false);
+    res.json({ code: 200, message: "保存成功" });
+}, false);
 
-spark.web.registerPage("正则测试器","regextest.html")
+spark.web.registerPage("正则测试器", "regextest.html")
 
 // 监听配置更新，同步修改内存并【调用 File API 存入本地】
 spark.on("config.update.sb3_regex", (key, val) => {
@@ -127,7 +127,7 @@ let messageRegex = [];
 let eventRegex = [];
 
 // 分割消息触发和事件触发
-function splitRegex(){
+function splitRegex() {
     messageRegex.length = 0;
     eventRegex.length = 0;
     rules.forEach(rule => {
@@ -186,9 +186,9 @@ function parseVariables(text, pack, context) {
         if (varName === 'groupId') return pack.group_id;
         if (varName === 'at') {
             let at = getAt(pack.message);
-            if (at.find){
+            if (at.find) {
                 return at.qq;
-            }else{
+            } else {
                 return pack.user_id;
 
             }
@@ -268,19 +268,19 @@ async function executeActions(actions, pack, matchResult = []) {
                     await spark.QClient.sendGroupMsg(pack.group_id, image(parsedImage));
                     break;
                 }
-                case 'callPluginCommand':{
+                case 'callPluginCommand': {
                     let command = action.params.split(',')[0];
-                    if (customActionsRegistry[command]){
+                    if (customActionsRegistry[command]) {
                         const parsedParams = parseVariables(action.params, pack, actionContext);
                         // console.log(parsedParams);
                         let command_params = parsedParams.split(',').slice(1);
                         const ret = await customActionsRegistry[command](command_params, pack, actionContext);
                         if (ret && typeof ret === 'object' && !Array.isArray(ret)) {
-                                Object.assign(actionContext, ret);
-                            } else if (ret !== undefined) {
-                                actionContext.result = String(ret);
-                            }
-                    }else{
+                            Object.assign(actionContext, ret);
+                        } else if (ret !== undefined) {
+                            actionContext.result = String(ret);
+                        }
+                    } else {
                         logger.error(`[正则模块] 插件动作 ${command} 未注册，请检查插件是否正确安装或配置！`);
                     }
                     break;
@@ -442,7 +442,7 @@ async function handleEvent(currentEventType, pack) {
                 matchResult = [pack.user_id ? pack.user_id.toString() : ''];
             }
 
-            if(rule.eventType === 'server.player_chat'){
+            if (rule.eventType === 'server.player_chat') {
                 matchResult = [pack.raw_message];
             }
 
@@ -466,7 +466,7 @@ async function handleEvent(currentEventType, pack) {
 }
 
 spark.on('notice.group_increase', async (pack) => {
-    if(pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true)return;
+    if (pack.group_id !== spark.env.get('main_group') && conf.only_on_main == true) return;
     await handleEvent('group.member_join', pack);
 });
 

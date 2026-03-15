@@ -40,7 +40,10 @@ function get_xbox_by_qid(id){
 }
 
 function get_qid_by_xbox(xbox){ 
-    return wl.find(x=>x.xbox == xbox).qid;
+    if(wl.find(x => x.xbox == xbox))
+        return wl.find(x=>x.xbox == xbox).qid;
+    else
+        return undefined;
 }
 
 function xbox_exist(xbox){ 
@@ -90,7 +93,7 @@ const xbox = {
 }
 
 // 兼容SB2
-// spark.env.set('mc', xbox);
+spark.env.set('mc', xbox);
 
 spark.on('core.ready', () => {
     const registerRegexAction = spark.env.get('regex.register_action');

@@ -97,11 +97,41 @@ class BaseAdapter extends EventEmitter {
     getMsg(messageId){
         throw new Error('Method getMsg must be implemented');
     }
-    getGroupRootFiles(groupId){
+    getGroupRootFiles(groupId, fileCount){
         throw new Error('Method getGroupRootFiles must be implemented');
     }
-    uploadGroupFile(groupId, fileName, asName, folderId){
+    getGroupFileSystemInfo(groupId){
+        throw new Error('Method getGroupFileSystemInfo must be implemented');
+    }
+    getGroupFilesByFolder(groupId, folderId, fileCount){
+        throw new Error('Method getGroupFilesByFolder must be implemented');
+    }
+    getGroupFileUrl(groupId, fileId){
+        throw new Error('Method getGroupFileUrl must be implemented');
+    }
+    uploadGroupFile(groupId, fileName, asName, folderId, uploadFile){
         throw new Error('Method uploadGroupFile must be implemented');
+    }
+    deleteGroupFile(groupId, fileId){
+        throw new Error('Method deleteGroupFile must be implemented');
+    }
+    createGroupFileFolder(groupId, name){
+        throw new Error('Method createGroupFileFolder must be implemented');
+    }
+    deleteGroupFileFolder(groupId, folderId){
+        throw new Error('Method deleteGroupFileFolder must be implemented');
+    }
+    uploadPrivateFile(userId, fileName, asName, uploadFile){
+        throw new Error('Method uploadPrivateFile must be implemented');
+    }
+    moveGroupFile(groupId, fileId, currentParentDirectory, targetParentDirectory){
+        throw new Error('Method moveGroupFile must be implemented');
+    }
+    transGroupFile(groupId, fileId){
+        throw new Error('Method transGroupFile must be implemented');
+    }
+    renameGroupFile(groupId, fileId, currentParentDirectory, newName){
+        throw new Error('Method renameGroupFile must be implemented');
     }
     sendGroupWholeBan(groupId, enable){
         throw new Error('Method sendGroupWholeBan must be implemented');

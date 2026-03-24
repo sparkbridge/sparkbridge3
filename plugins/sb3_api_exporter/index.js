@@ -36,6 +36,24 @@ spark.on('core.ready', () => {
         ll.exports((gid, dismiss) => spark.QClient.setGroupLeave(gid, dismiss), name_space, "setGroupLeave");
         // 设置群名
         ll.exports((gid, name) => spark.QClient.setGroupName(gid, name), name_space, "setGroupName");
+        // 设置群名片
+        ll.exports((gid, mid, card) => spark.QClient.setGroupCard(gid, mid, card), name_space, "setGroupCard");
+        // 删除群文件
+        ll.exports((gid, fileId) => spark.QClient.deleteGroupFile(gid, fileId), name_space, "deleteGroupFile");
+        // 创建群文件文件夹
+        ll.exports((gid, name) => spark.QClient.createGroupFileFolder(gid, name), name_space, "createGroupFileFolder");
+        // 删除群文件文件夹
+        ll.exports((gid, folderId) => spark.QClient.deleteGroupFileFolder(gid, folderId), name_space, "deleteGroupFileFolder");
+        // 移动群文件
+        ll.exports((gid, fileId, currentParentDirectory, targetParentDirectory) => spark.QClient.moveGroupFile(gid, fileId, currentParentDirectory, targetParentDirectory), name_space, "moveGroupFile");
+        // 转存群文件
+        ll.exports((gid, fileId) => spark.QClient.transGroupFile(gid, fileId), name_space, "transGroupFile");
+        // 重命名群文件
+        ll.exports((gid, fileId, currentParentDirectory, newName) => spark.QClient.renameGroupFile(gid, fileId, currentParentDirectory, newName), name_space, "renameGroupFile");
+        // 上传群文件
+        ll.exports((gid, file, name, folderId, uploadFile) => spark.QClient.uploadGroupFile(gid, file, name, folderId, uploadFile), name_space, "uploadGroupFile");
+        // 上传私聊文件
+        ll.exports((uid, file, name, uploadFile) => spark.QClient.uploadPrivateFile(uid, file, name, uploadFile), name_space, "uploadPrivateFile");
         
         // ==================== 获取信息 ====================
         // 群成员列表
@@ -58,6 +76,18 @@ spark.on('core.ready', () => {
         ll.exports(() => spark.QClient.getStatus(), name_space, "getStatus");
         // 消息
         ll.exports((id) => spark.QClient.getMsg(id), name_space, "getMsg");
+        // 群荣誉信息
+        ll.exports((gid, type) => spark.QClient.getGroupHonorInfo(gid, type), name_space, "getGroupHonorInfo");
+        // 群文件系统信息
+        ll.exports((gid) => spark.QClient.getGroupFileSystemInfo(gid), name_space, "getGroupFileSystemInfo");
+        // 群根目录文件
+        ll.exports((gid, fileCount) => spark.QClient.getGroupRootFiles(gid, fileCount), name_space, "getGroupRootFiles");
+        // 按文件夹获取群文件
+        ll.exports((gid, folderId, fileCount) => spark.QClient.getGroupFilesByFolder(gid, folderId, fileCount), name_space, "getGroupFilesByFolder");
+        // 获取群文件下载地址
+        ll.exports((gid, fileId) => spark.QClient.getGroupFileUrl(gid, fileId), name_space, "getGroupFileUrl");
+        // 获取机型显示
+        ll.exports(() => spark.QClient.getModelShow(), name_space, "getModelShow");
         
         // ==================== 其他功能 ====================
         // 点赞
@@ -88,6 +118,18 @@ spark.on('core.ready', () => {
         ll.exports((gid, mid, duration) => spark.packbuilder.GroupBanPack(gid, mid, duration), name_space, "GroupBanPack");
         ll.exports((gid, id) => spark.packbuilder.GroupMemberListPack(gid, id), name_space, "GroupMemberListPack");
         ll.exports((fid, times) => spark.packbuilder.LikePack(fid, times), name_space, "LikePack");
+        ll.exports((gid, id, fileCount) => spark.packbuilder.GroupRootFilesPack(gid, id, fileCount), name_space, "GroupRootFilesPack");
+        ll.exports((gid, file, name, folderId, uploadFile) => spark.packbuilder.UploadGroupFilePack(gid, file, name, folderId, uploadFile), name_space, "UploadGroupFilePack");
+        ll.exports((gid, fileId) => spark.packbuilder.DeleteGroupFilePack(gid, fileId), name_space, "DeleteGroupFilePack");
+        ll.exports((gid, name) => spark.packbuilder.CreateGroupFileFolderPack(gid, name), name_space, "CreateGroupFileFolderPack");
+        ll.exports((gid, folderId) => spark.packbuilder.DeleteGroupFileFolderPack(gid, folderId), name_space, "DeleteGroupFileFolderPack");
+        ll.exports((gid, id) => spark.packbuilder.GroupFileSystemInfoPack(gid, id), name_space, "GroupFileSystemInfoPack");
+        ll.exports((gid, folderId, id, fileCount) => spark.packbuilder.GroupFilesByFolderPack(gid, folderId, id, fileCount), name_space, "GroupFilesByFolderPack");
+        ll.exports((gid, fileId, id) => spark.packbuilder.GroupFileUrlPack(gid, fileId, id), name_space, "GroupFileUrlPack");
+        ll.exports((uid, file, name, uploadFile) => spark.packbuilder.UploadPrivateFilePack(uid, file, name, uploadFile), name_space, "UploadPrivateFilePack");
+        ll.exports((gid, fileId, currentParentDirectory, targetParentDirectory) => spark.packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory), name_space, "MoveGroupFilePack");
+        ll.exports((gid, fileId) => spark.packbuilder.TransGroupFilePack(gid, fileId), name_space, "TransGroupFilePack");
+        ll.exports((gid, fileId, currentParentDirectory, newName) => spark.packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName), name_space, "RenameGroupFilePack");
         
         
         logger.info('✓ sb3_api_exporter: 成功导出全部 SparkAPI 函数');

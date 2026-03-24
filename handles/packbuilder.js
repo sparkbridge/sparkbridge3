@@ -33,7 +33,7 @@ class Builder {
         }
     }
     static SandGroupMessagePack(gid, msg, escape = false) {
-        return SendGroupMessagePack(gid, msg, escape)
+        return this.SendGroupMessagePack(gid, msg, escape)
         //由铭记制造的历史遗留问题
     }
     static LikePack(fid, times) {
@@ -237,7 +237,7 @@ class Builder {
             action: 'get_group_honor_info',
             echo: id,
             params: {
-                user_id: gid,
+                group_id: gid,
                 type
             }
         }
@@ -248,25 +248,129 @@ class Builder {
             echo: id
         }
     }
-    static GroupRootFilesPack(gid, id) {
+    static GroupRootFilesPack(gid, id, fileCount = 50) {
         return {
             action: "get_group_root_files",
             echo: id,
             params: {
                 group_id: gid, // 群号
+                file_count: fileCount
             }
         }
     }
-    static UploadGroupFilePack(gid, FileName, AsName, FolderID) {
+    static UploadGroupFilePack(gid, FileName, AsName, FolderID, uploadFile = true) {
         return {
             action: "upload_group_file",
             params: {
                 group_id: gid, // 群号
                 file: FileName, // 本地文件路径
                 name: AsName, // 储存名称
-                folder: FolderID // 不提供父目录ID，默认上传到根目录
+                folder: FolderID, // 不提供父目录ID，默认上传到根目录
+                folder_id: FolderID,
+                upload_file: uploadFile
             }
         };
+    }
+    static DeleteGroupFilePack(gid, fileId) {
+        return {
+            action: 'delete_group_file',
+            params: {
+                group_id: gid,
+                file_id: fileId
+            }
+        }
+    }
+    static CreateGroupFileFolderPack(gid, name) {
+        return {
+            action: 'create_group_file_folder',
+            params: {
+                group_id: gid,
+                name,
+                folder_name: name
+            }
+        }
+    }
+    static DeleteGroupFileFolderPack(gid, folderId) {
+        return {
+            action: 'delete_group_folder',
+            params: {
+                group_id: gid,
+                folder_id: folderId
+            }
+        }
+    }
+    static GroupFileSystemInfoPack(gid, id) {
+        return {
+            action: 'get_group_file_system_info',
+            echo: id,
+            params: {
+                group_id: gid
+            }
+        }
+    }
+    static GroupFilesByFolderPack(gid, folderId, id, fileCount = 50) {
+        return {
+            action: 'get_group_files_by_folder',
+            echo: id,
+            params: {
+                group_id: gid,
+                folder_id: folderId,
+                folder: folderId,
+                file_count: fileCount
+            }
+        }
+    }
+    static GroupFileUrlPack(gid, fileId, id) {
+        return {
+            action: 'get_group_file_url',
+            echo: id,
+            params: {
+                group_id: gid,
+                file_id: fileId
+            }
+        }
+    }
+    static UploadPrivateFilePack(uid, FileName, AsName, uploadFile = true) {
+        return {
+            action: 'upload_private_file',
+            params: {
+                user_id: uid,
+                file: FileName,
+                name: AsName,
+                upload_file: uploadFile
+            }
+        }
+    }
+    static MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory) {
+        return {
+            action: 'move_group_file',
+            params: {
+                group_id: gid,
+                file_id: fileId,
+                current_parent_directory: currentParentDirectory,
+                target_parent_directory: targetParentDirectory
+            }
+        }
+    }
+    static TransGroupFilePack(gid, fileId) {
+        return {
+            action: 'trans_group_file',
+            params: {
+                group_id: gid,
+                file_id: fileId
+            }
+        }
+    }
+    static RenameGroupFilePack(gid, fileId, currentParentDirectory, newName) {
+        return {
+            action: 'rename_group_file',
+            params: {
+                group_id: gid,
+                file_id: fileId,
+                current_parent_directory: currentParentDirectory,
+                new_name: newName
+            }
+        }
     }
     static LoginInfoPack(id) {
         return {

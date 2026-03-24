@@ -305,10 +305,10 @@ class OneBotWSAdapter extends BaseAdapter {
     //     }).catch(this.defaultErrorHandler)
     // }
 
-    getGroupRootFiles(gid) {
+    getGroupRootFiles(gid, fileCount = 50) {
         try {
             let tmp_id = uuid();
-           this.sendWSPack(packbuilder.GroupRootFilesPack(gid, tmp_id));
+           this.sendWSPack(packbuilder.GroupRootFilesPack(gid, tmp_id, fileCount));
             return new Promise((res, rej) => {
                 this.once('packid_' + tmp_id, (data) => {
                     res(data);
@@ -322,8 +322,75 @@ class OneBotWSAdapter extends BaseAdapter {
         }
     }
 
-    uploadGroupFile(gid, FileName, AsName, FolderID) {
-       this.sendWSPack(packbuilder.UploadGroupFilePack(gid, FileName, AsName, FolderID))
+    uploadGroupFile(gid, FileName, AsName, FolderID, uploadFile = true) {
+       this.sendWSPack(packbuilder.UploadGroupFilePack(gid, FileName, AsName, FolderID, uploadFile))
+    }
+
+    deleteGroupFile(gid, fileId) {
+       this.sendWSPack(packbuilder.DeleteGroupFilePack(gid, fileId));
+    }
+
+    createGroupFileFolder(gid, name) {
+       this.sendWSPack(packbuilder.CreateGroupFileFolderPack(gid, name));
+    }
+
+    deleteGroupFileFolder(gid, folderId) {
+       this.sendWSPack(packbuilder.DeleteGroupFileFolderPack(gid, folderId));
+    }
+
+    getGroupFileSystemInfo(gid) {
+        let tmp_id = uuid();
+        this.sendWSPack(packbuilder.GroupFileSystemInfoPack(gid, tmp_id));
+        return new Promise((res, rej) => {
+            this.once('packid_' + tmp_id, (data) => {
+                res(data);
+            });
+            setTimeout(() => {
+                rej({ reason: 'timeout' });
+            }, 10e3);
+        }).catch(this.defaultErrorHandler)
+    }
+
+    getGroupFilesByFolder(gid, folderId, fileCount = 50) {
+        let tmp_id = uuid();
+        this.sendWSPack(packbuilder.GroupFilesByFolderPack(gid, folderId, tmp_id, fileCount));
+        return new Promise((res, rej) => {
+            this.once('packid_' + tmp_id, (data) => {
+                res(data);
+            });
+            setTimeout(() => {
+                rej({ reason: 'timeout' });
+            }, 10e3);
+        }).catch(this.defaultErrorHandler)
+    }
+
+    getGroupFileUrl(gid, fileId) {
+        let tmp_id = uuid();
+        this.sendWSPack(packbuilder.GroupFileUrlPack(gid, fileId, tmp_id));
+        return new Promise((res, rej) => {
+            this.once('packid_' + tmp_id, (data) => {
+                res(data);
+            });
+            setTimeout(() => {
+                rej({ reason: 'timeout' });
+            }, 10e3);
+        }).catch(this.defaultErrorHandler)
+    }
+
+    uploadPrivateFile(uid, FileName, AsName, uploadFile = true) {
+       this.sendWSPack(packbuilder.UploadPrivateFilePack(uid, FileName, AsName, uploadFile));
+    }
+
+    moveGroupFile(gid, fileId, currentParentDirectory, targetParentDirectory) {
+       this.sendWSPack(packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory));
+    }
+
+    transGroupFile(gid, fileId) {
+       this.sendWSPack(packbuilder.TransGroupFilePack(gid, fileId));
+    }
+
+    renameGroupFile(gid, fileId, currentParentDirectory, newName) {
+       this.sendWSPack(packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName));
     }
 
     sendGroupWholeBan(gid, enable) {
@@ -383,7 +450,7 @@ class OneBotWSAdapter extends BaseAdapter {
 
     getFriendList() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.FriendInfoPack(tmp_id));
+       this.sendWSPack(packbuilder.FriendListPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -396,7 +463,7 @@ class OneBotWSAdapter extends BaseAdapter {
 
     getGroupList() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupInfoPack(tmp_id));
+       this.sendWSPack(packbuilder.GroupListPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -409,7 +476,7 @@ class OneBotWSAdapter extends BaseAdapter {
 
     getGroupHonorInfo(gid, type) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupInfoPack(gid, type, tmp_id));
+       this.sendWSPack(packbuilder.GroupHonorInfoPack(gid, type, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);

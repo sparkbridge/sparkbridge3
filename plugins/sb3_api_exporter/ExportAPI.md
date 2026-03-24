@@ -110,6 +110,88 @@
 - 返回值：操作结果
 - 返回值类型：void
 
+### 设置群名片
+`setGroupCard(gid, mid, card)`
+- 参数：
+  - gid : `Number` - 群号
+  - mid : `Number` - 成员 QQ
+  - card : `String` - 新群名片
+- 返回值：操作结果
+- 返回值类型：Promise
+
+### 删除群文件
+`deleteGroupFile(gid, fileId)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+- 返回值：操作结果
+- 返回值类型：void
+
+### 创建群文件文件夹
+`createGroupFileFolder(gid, name)`
+- 参数：
+  - gid : `Number` - 群号
+  - name : `String` - 文件夹名称
+- 返回值：操作结果
+- 返回值类型：void
+
+### 删除群文件文件夹
+`deleteGroupFileFolder(gid, folderId)`
+- 参数：
+  - gid : `Number` - 群号
+  - folderId : `String` - 文件夹 ID
+- 返回值：操作结果
+- 返回值类型：void
+
+### 移动群文件
+`moveGroupFile(gid, fileId, currentParentDirectory, targetParentDirectory)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+  - currentParentDirectory : `String` - 当前父目录 ID
+  - targetParentDirectory : `String` - 目标父目录 ID
+- 返回值：操作结果
+- 返回值类型：void
+
+### 转存群文件
+`transGroupFile(gid, fileId)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+- 返回值：操作结果
+- 返回值类型：void
+
+### 重命名群文件
+`renameGroupFile(gid, fileId, currentParentDirectory, newName)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+  - currentParentDirectory : `String` - 当前父目录 ID
+  - newName : `String` - 新文件名
+- 返回值：操作结果
+- 返回值类型：void
+
+### 上传群文件
+`uploadGroupFile(gid, file, name, folderId, uploadFile)`
+- 参数：
+  - gid : `Number` - 群号
+  - file : `String` - 本地文件路径
+  - name : `String` - 上传后的文件名
+  - folderId : `String` - 目标目录 ID，不填通常为根目录
+  - uploadFile : `Boolean` - 是否实际执行上传，默认 `true`
+- 返回值：操作结果
+- 返回值类型：void
+
+### 上传私聊文件
+`uploadPrivateFile(uid, file, name, uploadFile)`
+- 参数：
+  - uid : `Number` - 用户 QQ
+  - file : `String` - 本地文件路径
+  - name : `String` - 上传后的文件名
+  - uploadFile : `Boolean` - 是否实际执行上传，默认 `true`
+- 返回值：操作结果
+- 返回值类型：void
+
 ## 获取信息
 
 ### 获取群成员列表
@@ -176,6 +258,51 @@
 - 参数：
   - id : `String` - 消息 ID
 - 返回值：指定消息的详细信息
+- 返回值类型：Promise(Object)
+
+### 获取群荣誉信息
+`getGroupHonorInfo(gid, type)`
+- 参数：
+  - gid : `Number` - 群号
+  - type : `String` - 荣誉类型
+- 返回值：群荣誉信息
+- 返回值类型：Promise(Object)
+
+### 获取群文件系统信息
+`getGroupFileSystemInfo(gid)`
+- 参数：
+  - gid : `Number` - 群号
+- 返回值：群文件系统信息
+- 返回值类型：Promise(Object)
+
+### 获取群根目录文件
+`getGroupRootFiles(gid, fileCount)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileCount : `Number | String` - 文件数量，默认 `50`
+- 返回值：群根目录文件列表
+- 返回值类型：Promise(Object)
+
+### 获取群目录下文件
+`getGroupFilesByFolder(gid, folderId, fileCount)`
+- 参数：
+  - gid : `Number` - 群号
+  - folderId : `String` - 文件夹 ID
+  - fileCount : `Number | String` - 文件数量，默认 `50`
+- 返回值：目录中的文件和文件夹
+- 返回值类型：Promise(Object)
+
+### 获取群文件下载地址
+`getGroupFileUrl(gid, fileId)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+- 返回值：文件下载地址信息
+- 返回值类型：Promise(Object)
+
+### 获取机型显示
+`getModelShow()`
+- 返回值：当前机型显示信息
 - 返回值类型：Promise(Object)
 
 ## 其他功能
@@ -336,6 +463,115 @@
 - 参数：
   - fid : `Number` - 用户 QQ
   - times : `Number` - 点赞次数
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 获取群根目录文件包
+`GroupRootFilesPack(gid, id, fileCount)`
+- 参数：
+  - gid : `Number` - 群号
+  - id : `String` - 请求 ID
+  - fileCount : `Number | String` - 文件数量，默认 `50`
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 上传群文件包
+`UploadGroupFilePack(gid, file, name, folderId, uploadFile)`
+- 参数：
+  - gid : `Number` - 群号
+  - file : `String` - 本地文件路径
+  - name : `String` - 上传后的文件名
+  - folderId : `String` - 目标目录 ID
+  - uploadFile : `Boolean` - 是否实际执行上传，默认 `true`
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 删除群文件包
+`DeleteGroupFilePack(gid, fileId)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 创建群文件夹包
+`CreateGroupFileFolderPack(gid, name)`
+- 参数：
+  - gid : `Number` - 群号
+  - name : `String` - 文件夹名称
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 删除群文件夹包
+`DeleteGroupFileFolderPack(gid, folderId)`
+- 参数：
+  - gid : `Number` - 群号
+  - folderId : `String` - 文件夹 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 获取群文件系统信息包
+`GroupFileSystemInfoPack(gid, id)`
+- 参数：
+  - gid : `Number` - 群号
+  - id : `String` - 请求 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 获取群目录文件包
+`GroupFilesByFolderPack(gid, folderId, id, fileCount)`
+- 参数：
+  - gid : `Number` - 群号
+  - folderId : `String` - 文件夹 ID
+  - id : `String` - 请求 ID
+  - fileCount : `Number | String` - 文件数量，默认 `50`
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 获取群文件地址包
+`GroupFileUrlPack(gid, fileId, id)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+  - id : `String` - 请求 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 上传私聊文件包
+`UploadPrivateFilePack(uid, file, name, uploadFile)`
+- 参数：
+  - uid : `Number` - 用户 QQ
+  - file : `String` - 本地文件路径
+  - name : `String` - 上传后的文件名
+  - uploadFile : `Boolean` - 是否实际执行上传，默认 `true`
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 移动群文件包
+`MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+  - currentParentDirectory : `String` - 当前父目录 ID
+  - targetParentDirectory : `String` - 目标父目录 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 转存群文件包
+`TransGroupFilePack(gid, fileId)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+- 返回值：OneBot 协议数据包
+- 返回值类型：Object
+
+### 重命名群文件包
+`RenameGroupFilePack(gid, fileId, currentParentDirectory, newName)`
+- 参数：
+  - gid : `Number` - 群号
+  - fileId : `String` - 文件 ID
+  - currentParentDirectory : `String` - 当前父目录 ID
+  - newName : `String` - 新文件名
 - 返回值：OneBot 协议数据包
 - 返回值类型：Object
 

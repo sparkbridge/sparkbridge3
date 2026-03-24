@@ -24,7 +24,9 @@ class BaseAdapter extends EventEmitter {
     // 触发事件 (带拦截器检查)
     trigger(event, ...args) {
         // 如果存在全局 spark 对象且开启了 debug，则打印触发事件日志
-
+        if (global.spark && global.spark.debug) {
+            console.log(`Triggering event: ${event}`);
+        }
             // console.log(`Triggering event: ${event}`);
         
         // 检查是否有拦截器拦截当前事件
@@ -34,7 +36,7 @@ class BaseAdapter extends EventEmitter {
                 if (result === false) {
                     // 如果存在全局 spark 对象且开启了 debug，则打印拦截日志
                     if (global.spark && global.spark.debug) {
-                        // console.log(`Event '${event}' was intercepted.`);
+                        console.log(`Event '${event}' was intercepted.`);
                     }
                     return; // 如果拦截器返回 false，则中断事件触发
                 }

@@ -5,7 +5,10 @@ const mockLogger = getLogger('FakeBDS');
 // 伪造 MC 接口
 global.mc = {
     broadcast: (msg) => mockLogger.info(`[游戏内广播] ${msg}`),
-    runcmd: (cmd) => mockLogger.info(`[执行控制台命令] ${cmd}`),
+    runcmd: (cmd) => {
+        mockLogger.info(`[执行命令] ${cmd}`);
+        return { success: true ,msg: '已执行'}
+    },
     getOnlinePlayers: () => [],
     listen: (event, callback) => mockLogger.debug(`[监听游戏事件] ${event}`)
 };

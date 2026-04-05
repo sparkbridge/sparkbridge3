@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 节点管理面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-light: #5a77f5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 标题 */
+        .header {
+            margin-bottom: 28px;
+        }
+
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 表单 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 表格 */
+        .table-box {
+            overflow-x: auto;
+            margin-top: 12px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        /* 状态标签 */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-online {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-offline {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* 加载 / 空状态 */
+        .loading,
+        .empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* 指令弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 520px;
+            border-radius: var(--radius);
+            padding: 24px;
+            transform: translateY(-20px);
+            transition: transform 0.2s;
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">WebSocket 节点管理</h1>
+            <p class="desc">管理所有子服连接状态、配置与远程指令</p>
+        </div>
+
+        <!-- 添加/编辑服务器 -->
+        <div class="card">
+            <h3 class="card-title">⚙️ 服务器节点配置</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>服务器ID</label>
+                    <input id="server-id" class="form-control" placeholder="例如 Lobby、Survival">
+                </div>
+                <div class="form-group">
+                    <label>WebSocket 地址</label>
+                    <input id="server-url" class="form-control" placeholder="ws://ip:port">
+                </div>
+                <div class="form-group">
+                    <label>AES 加密密码</label>
+                    <input type="password" id="server-pwd" class="form-control" placeholder="通讯密码">
+                </div>
+            </div>
+            <button id="save-server" class="btn btn-primary">✅ 保存并连接</button>
+        </div>
+
+        <!-- 服务器列表 -->
+        <div class="card">
+            <h3 class="card-title">📶 服务器状态列表</h3>
+            <div id="loading" class="loading">加载中...</div>
+            <div id="empty" class="empty" style="display:none;">暂无服务器</div>
+            <div id="table-box" class="table-box" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>服务器ID</th>
+                            <th>连接地址</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="server-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 指令下发弹窗 -->
+    <div class="modal" id="cmd-modal">
+        <div class="modal-content">
+            <h4 class="modal-title">远程执行指令</h4>
+            <div class="form-group">
+                <label>目标服务器</label>
+                <input id="cmd-id" class="form-control" readonly>
+            </div>
+            <div class="form-group" style="margin-top:12px;">
+                <label>指令内容（无需输入 /）</label>
+                <input id="cmd-content" class="form-control" placeholder="例如 say hello、list、time set day">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button class="btn" onclick="closeCmdModal()">取消</button>
+                <button id="send-cmd" class="btn btn-primary">发送指令</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= 全局配置 =================
+        let token = '';
+        const baseUrl = '/api/plugin/hub_mgr';
+
+        // ================= 工具：获取Token =================
+        function getTokenFromParent() {
+            return new Promise((resolve) => {
+                // 1. 优先从URL获取
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlToken = urlParams.get('token');
+                if (urlToken) {
+                    token = urlToken;
+                    resolve();
+                    return;
+                }
+
+                // 2. 从父应用获取
+                if (window !== window.top) {
+                    function listener(e) {
+                        if (e.data.action === 'SB3_TOKEN') {
+                            token = e.data.payload.token;
+                            window.removeEventListener('message', listener);
+                            resolve();
+                        }
+                    }
+                    window.addEventListener('message', listener);
+                    window.parent.postMessage({ action: 'GET_SB3_TOKEN' }, '*');
+                } else {
+                    // 调试模式
+                    token = 'dev_token_123456';
+                    resolve();
+                }
+            });
+        }
+
+        // ================= 统一API请求 =================
+        async function api(url, options = {}) {
+            if (!token) await getTokenFromParent();
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            try {
+                const res = await fetch(`${baseUrl}${url}`, { ...options, headers });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.msg || '请求失败');
+                return data;
+            } catch (err) {
+                alert(`错误：${err.message}`);
+                throw err;
+            }
+        }
+
+        // ================= 页面功能 =================
+        let currentCmdId = '';
+
+        // 加载服务器列表
+        async function loadList() {
+            const loading = document.getElementById('loading');
+            const empty = document.getElementById('empty');
+            const box = document.getElementById('table-box');
+            const list = document.getElementById('server-list');
+
+            loading.style.display = 'block';
+            empty.style.display = 'none';
+            box.style.display = 'none';
+
+            try {
+                const { data } = await api('/servers', { method: 'GET' });
+                list.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                data.forEach(s => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><b>${s.id}</b></td>
+                        <td>${s.url}</td>
+                        <td><span class="badge badge-${s.status}">${s.status === 'online' ? '在线' : '离线'}</span></td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-warning cmd-btn" data-id="${s.id}">⌨️ 指令</button>
+                                <button class="btn btn-danger del-btn" data-id="${s.id}">🗑️ 删除</button>
+                            </div>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+
+                    // 指令按钮
+                    tr.querySelector('.cmd-btn').onclick = () => openCmdModal(s.id);
+                    // 删除按钮
+                    tr.querySelector('.del-btn').onclick = () => delServer(s.id);
+                });
+
+                box.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 保存服务器
+        async function saveServer() {
+            const id = document.getElementById('server-id').value.trim();
+            const url = document.getElementById('server-url').value.trim();
+            const pwd = document.getElementById('server-pwd').value.trim();
+
+            if (!id || !url || !pwd) return alert('请填写完整信息');
+
+            await api('/servers', {
+                method: 'POST',
+                body: JSON.stringify({ id, url, password: pwd })
+            });
+            alert('保存成功！');
+            document.getElementById('server-id').value = '';
+            document.getElementById('server-url').value = '';
+            document.getElementById('server-pwd').value = '';
+            loadList();
+        }
+
+        // 删除服务器
+        async function delServer(id) {
+            if (!confirm(`确定删除服务器：${id} ？`)) return;
+            await api(`/servers?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+            alert('删除成功');
+            loadList();
+        }
+
+        // ================= 指令下发功能 =================
+        function openCmdModal(id) {
+            currentCmdId = id;
+            document.getElementById('cmd-id').value = id;
+            document.getElementById('cmd-content').value = '';
+            document.getElementById('cmd-modal').classList.add('show');
+        }
+
+        function closeCmdModal() {
+            document.getElementById('cmd-modal').classList.remove('show');
+        }
+
+        async function sendCommand() {
+            const cmd = document.getElementById('cmd-content').value.trim();
+            if (!cmd) return alert('请输入指令');
+
+            await api('/command', {
+                method: 'POST',
+                body: JSON.stringify({ id: currentCmdId, command: cmd })
+            });
+            alert('指令下发成功！');
+            closeCmdModal();
+        }
+
+        // ================= 初始化 =================
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getTokenFromParent();
+            loadList();
+            document.getElementById('save-server').onclick = saveServer;
+            document.getElementById('send-cmd').onclick = sendCommand;
+        });
+    </script>
+</body>
+
+</html>

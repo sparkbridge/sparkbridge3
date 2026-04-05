@@ -1,10 +1,10 @@
 const WebSocket = require('ws');
 const BaseAdapter = require('./BaseAdapter');
-const logger = require('../handles/logger');
-const packbuilder = require('../handles/packbuilder');
-const msgbuilder = require('../handles/msgbuilder');
+const logger = require('../../handles/logger');
+const packbuilder = require('../../handles/packbuilder');
+const msgbuilder = require('../../handles/msgbuilder');
 // 假设 reconnect.js 依然保留在项目中
-const { boom } = require('../handles/reconnect');
+const { boom } = require('../../handles/reconnect');
 
 function uuid() {
     let s = []
@@ -20,7 +20,7 @@ function uuid() {
     return uuid
 }
 
-const ErrorLogger = require('../handles/logger').getLogger('ErrorLogger');
+const ErrorLogger = require('../../handles/logger').getLogger('ErrorLogger');
 
 /**
  * SparkBridge3 - OneBot 标准 WebSocket 适配器

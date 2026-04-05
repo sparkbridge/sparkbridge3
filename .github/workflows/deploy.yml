@@ -69,8 +69,8 @@ jobs:
           # 以下变量可根据实际情况修改
           MINEBBS_TARGET_URL: 'https://www.minebbs.com/resources/sparkbridge-bot-qq.15586/post-update'
           MINEBBS_FILE_PATH: './sparkbridge3.zip' # ！！请修改为你打包出的文件实际路径
-          MINEBBS_VERSION: ${{ github.event.release.tag_name }}
-          MINEBBS_UPDATE_TITLE: 'GitHub 同步: ${{ github.event.release.name }}'
+          MINEBBS_VERSION: ${{ github.ref_name  }}
+          MINEBBS_UPDATE_TITLE: 'GitHub 同步: ${{ github.ref_name  }}'
           MINEBBS_CHANGE_LOG: ${{ github.event.release.body }}
         run: node upload.js
 

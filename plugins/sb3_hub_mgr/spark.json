@@ -1,0 +1,14 @@
+{
+    "name": "sb3_hub_mgr",
+    "author": "lition",
+    "version": [
+        0,
+        0,
+        1
+    ],
+    "desc": "多服务器管理",
+    "loadmode": "hub",
+    "permission": "key",
+    "priority": "main",
+    "load": true
+}

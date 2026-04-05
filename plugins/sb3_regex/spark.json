@@ -4,5 +4,6 @@
     "author": "SparkBridge3 Official",
     "permission": "key",
     "priority": "main",
+    "load_mode": "hybrid",
     "load": true
 }

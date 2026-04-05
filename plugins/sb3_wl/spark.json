@@ -2,8 +2,9 @@
     "name": "sb3_wl",
     "version": "1.0.0",
     "author": "SparkBridge3 Official",
-    "desc": "实现白名单双向绑定",
+    "desc": "实现白名单绑定",
     "permission": "key",
     "priority": "main",
+    "loadmode": "bds",
     "load": true
 }

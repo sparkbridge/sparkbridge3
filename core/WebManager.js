@@ -16,6 +16,7 @@ class WebManager {
     constructor(core) {
         this.core = core;
         this.app = express();
+        this.server = null;
 
         console.log(__dirname)
 
@@ -123,6 +124,11 @@ class WebManager {
         this.app.listen(this.port, this.host, () => {
             logger.info(`Web 控制面板已启动: http://${this.host === '0.0.0.0' ? '127.0.0.1' : this.host}:${this.port}`);
         });
+        if (typeof ll !== 'undefined' && ll.onUnload) {
+            ll.onUnload(() => {
+                this.shutdown();
+            });
+        }
         spark.on('core.ready', () => {
             // 使用新版 Fluent API 生成名为 base 的核心设置项
             spark.web.createConfig("web")
@@ -176,6 +182,14 @@ class WebManager {
                 url: fullPath
             });
             logger.info(`[Web] 已挂载插件自定义页面: [${pluginName}] ${title}`);
+        }
+    }
+
+    shutdown() {
+        if (this.server) {
+            this.server.close(() => {
+                logger.info('旧的 Web 服务已关闭');
+            });
         }
     }
 }

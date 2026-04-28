@@ -98,7 +98,7 @@ const getLogger = (labelName = 'Default') => {
 
             // 使用 DailyRotateFile 替代原有的 File 运输器
             new winston.transports.DailyRotateFile({
-                filename: 'logs/%DATE%.log', // 使用 %DATE% 占位符定义日期位置
+                filename: 'logs/sb3/%DATE%.log', // 使用 %DATE% 占位符定义日期位置
                 datePattern: 'YYYY-MM-DD',       // 切割频率，YYYY-MM-DD 表示按天切割
                 zippedArchive: true,             // 是否对旧日志进行压缩归档
                 maxSize: '20m',                  // 单个日志文件的最大大小

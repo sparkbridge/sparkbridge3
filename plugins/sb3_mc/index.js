@@ -4,7 +4,7 @@ const TARGET_GROUP = spark.env.get("main_group")
 
 const fileObj = spark.getFileHelper("sb3_mc");
 fileObj.initFile("config.json", {
-    chat_to_servere_enable: true,
+    chat_to_server_enable: true,
     chat_to_group_enable: true,
     leave_to_group_enable: true,
     join_to_group_enable: true,
@@ -21,7 +21,7 @@ const conf = JSON.parse(fileObj.read("config.json"));
 logger.info("sb3_mc 加载完成");
 
 spark.web.createConfig("sb3_mc")
-    .switch("chat_to_servere_nable", conf.chat_to_servere_enable, "是否转发群消息到服务器")
+    .switch("chat_to_server_enable", conf.chat_to_server_enable, "是否转发群消息到服务器")
     .switch("chat_to_group_nable", conf.chat_to_group_enable, "是否转发服务器消息到群聊")
     .switch("leave_to_group_nable", conf.leave_to_group_enable, "是否转发玩家离开服务器的消息")
     .switch("join_to_group_nable", conf.join_to_group_enable, "是否转发玩家进服的消息")
@@ -100,7 +100,7 @@ function formatMsg(msg) {
 
 
 // 1. QQ -> MC 游戏内
-if(conf.chat_to_servere_enable){
+if(conf.chat_to_server_enable){
     spark.on('message.group.normal', (pack) => {
         // console.log(`[QQ -> MC] 收到消息: ${pack.raw_message}`);
         if (pack.group_id === TARGET_GROUP) {

@@ -85,6 +85,6 @@ jobs:
             Tag: ${{ github.ref_name }}
           files: |
             sparkbridge3.zip
-            update-manifest.json
+            # update-manifest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

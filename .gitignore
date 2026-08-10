@@ -2,16 +2,25 @@
 testdata/
 serverdata/
 tmp/
-plugins/examples/
 ./sparkbridge.zip
 sparkbridge3.zip
 /web/
 /plugins/list.json
 publish.bat
 temp/
-/plugins/list.json
+
 # idea
 .vscode/
+
+# plugins
+plugins/*
+!plugins/sb3_api_exporter/
+!plugins/sb3_bridgebase/
+!plugins/sb3_deps/
+!plugins/sb3_filemanager/
+!plugins/sb3_mc/
+!plugins/sb3_regex/
+!plugins/wl/
 
 # llapi
 llapi.js

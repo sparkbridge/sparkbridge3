@@ -34,7 +34,42 @@ SparkBridge3 的主应用使用 `sb3_token` 进行鉴权，并且我们刚刚封
 1. **获取 Token**：
 插件页面不能直接读取主应用的 `localStorage`（如果是跨域 iframe 会被浏览器拦截）。
 * **标准做法**：插件页面加载后，通过 `window.parent.postMessage` 向主应用索要 Token；
+``` js
+function getSB3Token() {
+                return new Promise((resolve) => {
+                    // 优先从URL参数获取token
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlToken = urlParams.get('token');
+                    if (urlToken) {
+                        sb3Token = urlToken;
+                        resolve();
+                        return;
+                    }
 
+                    // 否则向主应用请求token
+                    if (window !== window.top) {
+                        // 监听主应用返回的token
+                        window.addEventListener('message', function listener(e) {
+                            if (e.data.action === 'SB3_TOKEN') {
+                                sb3Token = e.data.payload.token;
+                                // console.log('获取Token成功', sb3Token);
+                                window.removeEventListener('message', listener);
+                                resolve();
+                            }
+                        });
+
+                        // 发送获取token请求
+                        window.parent.postMessage({
+                            action: 'GET_SB3_TOKEN'
+                        }, '*');
+                    } else {
+                        // 调试模式下的默认值（生产环境需移除）
+                        sb3Token = 'dev_token_123456';
+                        resolve();
+                    }
+                });
+            }
+```
 
 2. **统一的 403 处理**：
 如果插件页面自己发起的 API 请求返回了 `403` 或 `401`，它不应该自己跳回登录页，而是应该通知主应用：“我的 Token 失效了，请把我踢出去”。

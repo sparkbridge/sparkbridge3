@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gensokyo 配置生成</title>
+<style>
+/* ===== SparkBridge3 iframe 规范：透明背景 + 主题色 + 圆角拟态 ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    margin: 0;
+    padding: 24px;
+    background-color: transparent;          /* 关键：透明，透出主系统背景 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;                          /* 主文本色 */
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
+.subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;                     /* 大卡片圆角 */
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+.card h2 { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px; }
+.field .hint { font-size: 12px; color: #94a3b8; font-weight: normal; margin-left: 6px; }
+.field input[type="text"], .field input[type="password"], .field input[type="number"] {
+    width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; color: #1e293b; background: #fff;
+}
+.field input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+.check-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.check-item { display: flex; align-items: center; gap: 6px; background: #f8fafc; padding: 7px 14px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #e2e8f0; color: #1e293b; }
+.check-item input { accent-color: #3b82f6; }
+.check-item.checked { border-color: #3b82f6; background: #eff6ff; }
+.radio-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.radio-item { display: flex; align-items: center; gap: 6px; background: #f8fafc; padding: 7px 14px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #e2e8f0; color: #1e293b; }
+.radio-item input { accent-color: #3b82f6; }
+.actions { display: flex; gap: 12px; margin-top: 8px; }
+.btn { padding: 10px 22px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: #e2e8f0; color: #1e293b; }
+.btn-secondary:hover { background: #cbd5e1; }
+#output { display: none; margin-top: 16px; }
+#output textarea {
+    width: 100%; height: 420px; font-family: 'Fira Code', Consolas, monospace; font-size: 12px;
+    border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; color: #1e293b;
+}
+.output-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.output-bar span { font-size: 13px; color: #94a3b8; }
+#msg { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 8px; display: none; }
+#msg.ok { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; display: block; }
+#msg.err { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+</style>
+</head>
+<body>
+<h1>Gensokyo 配置生成</h1>
+<div class="subtitle">为群服互通场景简化 Gensokyo 配置 — 只填必要的，其余用推荐默认值。生成的 config.yml 替换 Gensokyo 目录下的同名文件后重启。</div>
+
+<div class="card">
+  <h2>① 机器人账号（必填）</h2>
+  <div class="field">
+    <label>应用ID (app_id) <span class="hint">QQ开放平台创建机器人后获得</span></label>
+    <input type="number" id="app_id" placeholder="如 1904000000">
+  </div>
+  <div class="field">
+    <label>应用令牌 (token) <span class="hint">开放平台 → 开发设置</span></label>
+    <input type="text" id="token" placeholder="粘贴应用令牌">
+  </div>
+  <div class="field">
+    <label>客户端密钥 (client_secret) <span class="hint">开放平台 → 开发设置</span></label>
+    <input type="text" id="client_secret" placeholder="粘贴客户端密钥">
+  </div>
+  <div class="field">
+    <label>机器人QQ号 (uin) <span class="hint">点击机器人资料卡查看</span></label>
+    <input type="number" id="uin" placeholder="如 4015000000">
+  </div>
+</div>
+
+<div class="card">
+  <h2>② 服务器连接（必填）</h2>
+  <div class="field">
+    <label>监听端口 (port) <span class="hint">正向WS / WebUI / API 共用此端口</span></label>
+    <input type="number" id="port" value="15630" placeholder="如 15630">
+  </div>
+  <div class="field">
+    <label>正向WS令牌 (ws_server_token) <span class="hint">SparkBridge 连接 Gensokyo 的鉴权令牌，对应 SparkBridge base/config.json 的 pwd</span></label>
+    <input type="text" id="ws_server_token" placeholder="设置一个随机字符串作为连接密码">
+  </div>
+</div>
+
+<div class="card">
+  <h2>③ 消息行为（推荐配置）</h2>
+  <div class="field">
+    <label>事件订阅 (text_intent)</label>
+    <div class="check-group">
+      <label class="check-item"><input type="checkbox" id="intent_at" checked> 群@消息</label>
+      <label class="check-item"><input type="checkbox" id="intent_full" checked> 群全量消息（需官方权限）</label>
+      <label class="check-item"><input type="checkbox" id="intent_c2c" checked> 私聊</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>响应模式 (require_mention)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="require_mention" value="false" checked> 全量响应（所有消息都处理）</label>
+      <label class="radio-item"><input type="radio" name="require_mention" value="true"> 仅响应 @机器人</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>主动消息 (allow_proactive_msg)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="allow_proactive_msg" value="true" checked> 允许主动发送（推荐）</label>
+      <label class="radio-item"><input type="radio" name="allow_proactive_msg" value="false"> 仅被动回复</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>日志级别 (log_level)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="log_level" value="0"> debug（最详细）</label>
+      <label class="radio-item"><input type="radio" name="log_level" value="1" checked> info（推荐）</label>
+      <label class="radio-item"><input type="radio" name="log_level" value="3"> error（只报错）</label>
+    </div>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" onclick="generate()">生成 config.yml</button>
+  <button class="btn btn-secondary" onclick="downloadConfig()" id="btn_download" style="display:none">下载文件</button>
+  <button class="btn btn-secondary" onclick="copyConfig()" id="btn_copy" style="display:none">复制内容</button>
+</div>
+<div id="msg"></div>
+
+<div id="output">
+  <div class="output-bar"><span>生成的 config.yml（保存为 Gensokyo 目录下的 config.yml）</span></div>
+  <textarea id="outputText" readonly></textarea>
+</div>
+
+<script>
+let generatedConfig = '';
+
+// iframe 规范：通过 postMessage 通知主系统（不用原生 alert）
+function showNotice(msg, type) {
+    if (window !== window.top) {
+        window.parent.postMessage({ action: 'SHOW_NOTICE', payload: { msg: msg, type: type || 'info' } }, '*');
+    }
+}
+
+function generate() {
+  const app_id = document.getElementById('app_id').value.trim();
+  const token = document.getElementById('token').value.trim();
+  const client_secret = document.getElementById('client_secret').value.trim();
+  const uin = document.getElementById('uin').value.trim();
+  const port = document.getElementById('port').value.trim();
+  const ws_server_token = document.getElementById('ws_server_token').value.trim();
+
+  const errs = [];
+  if (!app_id) errs.push('应用ID');
+  if (!token) errs.push('应用令牌');
+  if (!client_secret) errs.push('客户端密钥');
+  if (!uin) errs.push('机器人QQ号');
+  if (!port) errs.push('监听端口');
+  if (!ws_server_token) errs.push('正向WS令牌');
+  if (errs.length) {
+    showMsg('请填写必填项: ' + errs.join('、'), false);
+    return;
+  }
+
+  const intents = [];
+  if (document.getElementById('intent_at').checked) intents.push('GroupATMessageEventHandler');
+  if (document.getElementById('intent_full').checked) intents.push('GroupMessageEventHandler');
+  if (document.getElementById('intent_c2c').checked) intents.push('C2CMessageEventHandler');
+  const intentLines = intents.length
+    ? intents.map(i => '    - "' + i + '"').join('\n')
+    : '    - "GroupATMessageEventHandler"';
+
+  const require_mention = document.querySelector('input[name="require_mention"]:checked').value;
+  const allow_proactive_msg = document.querySelector('input[name="allow_proactive_msg"]:checked').value;
+  const log_level = document.querySelector('input[name="log_level"]:checked').value;
+
+  const yml = `version: 1
+settings:
+  #基础设置
+  app_id: ${app_id}
+  uin : ${uin}
+  use_uin : false
+  token: "${token}"
+  client_secret: "${client_secret}"
+  shard_count: 1
+  shard_id: 0
+  shard_num: 1
+
+  #事件订阅
+  text_intent:
+${intentLines}
+
+  #转换类
+  global_channel_to_group: false
+  global_private_to_channel: false
+  global_forum_to_channel: false
+  global_interaction_to_message : false
+  hash_id : true
+  idmap_pro : false
+
+  #服务器设置
+  server_dir: ""              # 纯文本群服互通不需要；发base64图需填公网IP/域名
+  port: "${port}"
+  backup_port : "5200"
+  lotus: false
+  lotus_password : ""
+  lotus_without_idmaps: false
+  lotus_without_uploadpic : false
+  lotus_grpc : false
+  lotus_grpc_port : 50051
+
+  #正向ws设置
+  ws_server_path : "nil"
+  enable_ws_server: true
+  ws_server_token : "${ws_server_token}"
+
+  #日志类
+  developer_log : true
+  log_level : ${log_level}
+  save_logs : false
+
+  #webui设置
+  disable_webui: false
+  server_user_name : "admin"
+  server_user_password : "admin"
+
+  #指令魔法类（默认关闭白名单，避免拦截所有消息）
+  remove_prefix : false
+  remove_at : false
+  remove_bot_at_group : true
+  add_at_group : false
+  white_prefix_mode : false
+  v_white_prefix_mode : false
+  white_prefixs : [""]
+  white_bypass : []
+  white_enable : [false,false,false,false,false]
+  white_bypass_reverse : false
+  No_White_Response : ""
+  black_prefix_mode : false
+  black_prefixs : [""]
+  alias : ["",""]
+  visual_prefixs :
+  - prefix: ""
+    whiteList: [""]
+    No_White_Response : ""
+
+  #Onebot修改
+  twoway_echo : false
+  array: false
+  native_ob11 : false
+  disable_error_chan : false
+  string_ob11 : false
+  string_action : false
+
+  #发送行为修改
+  lazy_message_id : false
+  allow_proactive_msg : ${allow_proactive_msg}
+  require_mention : ${require_mention}
+  ramdom_seq : false
+  AMsgRetryAsPMsg_Count : 30
+  send_delay : 300
+  enableChangeWord : false
+  defaultChangeWord : "*"
+
+  #发图相关
+  oss_type : 0
+  image_sizelimit : 0
+  image_limit : 100
+  uploadpicv2_b64: true
+  server_temp_qqguild : "0"
+
+  #框架修改
+  title : "Gensokyo-Sparkbridge"
+  frp_port : "0"
+  union_id : false
+  custom_bot_name : "Gensokyo全域机器人-Sparkbridge"
+
+  #HTTP API配置（默认关闭）
+  http_address: ""
+  http_access_token: ""
+  http_version : 11
+  http_timeout: 5
+  post_url: [""]
+  post_secret: [""]
+  post_max_retries: [3]
+  post_retries_interval: [1500]
+`;
+
+  generatedConfig = yml;
+  document.getElementById('outputText').value = yml;
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('btn_download').style.display = 'inline-block';
+  document.getElementById('btn_copy').style.display = 'inline-block';
+  showMsg('生成成功！下载或复制 config.yml，替换 Gensokyo 目录下的同名文件后重启。', true);
+  showNotice('Gensokyo 配置已生成', 'success');
+}
+
+function downloadConfig() {
+  const blob = new Blob([generatedConfig], { type: 'text/yaml;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'config.yml';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function copyConfig() {
+  navigator.clipboard.writeText(generatedConfig).then(() => {
+    showMsg('已复制到剪贴板！', true);
+  }).catch(() => {
+    const ta = document.getElementById('outputText');
+    ta.select();
+    document.execCommand('copy');
+    showMsg('已复制到剪贴板！', true);
+  });
+}
+
+function showMsg(text, ok) {
+  const m = document.getElementById('msg');
+  m.textContent = text;
+  m.className = ok ? 'ok' : 'err';
+}
+</script>
+</body>
+</html>

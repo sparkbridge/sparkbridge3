@@ -1,0 +1,10 @@
+{
+    "name": "sb3_gskconfig",
+    "author": "SparkBridge3 Official",
+    "version": "0.2.0",
+    "desc": "Gensokyo 对接助手：Web 面板生成 Gensokyo(config.yml) 配置 + 可选实时打印群聊信息到控制台（首次对接官方bot时用于识别群成员/管理员openid）",
+    "permission": "key",
+    "priority": "post",
+    "load": true,
+    "loadmode": "hybrid"
+}

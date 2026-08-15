@@ -20,7 +20,8 @@ plugins/*
 !plugins/sb3_filemanager/
 !plugins/sb3_mc/
 !plugins/sb3_regex/
-!plugins/wl/
+!plugins/sb3_wl/
+!plugins/sb3_gskconfig/
 
 # llapi
 llapi.js

@@ -105,6 +105,17 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
       <label class="check-item"><input type="checkbox" id="intent_full" checked> 群全量消息（需官方权限）</label>
       <label class="check-item"><input type="checkbox" id="intent_c2c" checked> 私聊</label>
     </div>
+    <div class="check-group" style="margin-top:10px">
+      <label class="check-item"><input type="checkbox" id="intent_member_add" checked> 群成员加入</label>
+      <label class="check-item"><input type="checkbox" id="intent_member_remove" checked> 群成员退出</label>
+      <label class="check-item"><input type="checkbox" id="intent_join_request" checked> 用户申请加群</label>
+      <label class="check-item"><input type="checkbox" id="intent_subscribe_status" checked> 订阅消息授权状态变更</label>
+      <label class="check-item"><input type="checkbox" id="intent_add_robot" checked> 机器人被拉入群</label>
+      <label class="check-item"><input type="checkbox" id="intent_del_robot" checked> 机器人被移出群</label>
+      <label class="check-item"><input type="checkbox" id="intent_group_msg_reject" checked> 群关闭机器人推送</label>
+      <label class="check-item"><input type="checkbox" id="intent_group_msg_receive" checked> 群开启机器人推送</label>
+    </div>
+    <div class="hint">✅ 群聊管理事件可全部开启。前提：群主在手机 QQ 客户端的群设置里给机器人配置相应权限即可（入群审批、群禁言等群管理操作需机器人具备<b>群管理员</b>身份）。</div>
   </div>
   <div class="field">
     <label>响应模式 (require_mention)</label>
@@ -126,6 +137,35 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
       <label class="radio-item"><input type="radio" name="log_level" value="0"> debug（最详细）</label>
       <label class="radio-item"><input type="radio" name="log_level" value="1" checked> info（推荐）</label>
       <label class="radio-item"><input type="radio" name="log_level" value="3"> error（只报错）</label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>④ 群消息 @ 设置（建议全部保持关闭）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ QQ官方机器人API不支持真正的 @（标签实测显示原文），at 只是文本显示。三个开关作用在<b>完全不同的环节</b>，一般都不需要开。</div>
+  <div class="field">
+    <label>remove_at — 去掉「收到的」消息开头的 @机器人（接收侧）</label>
+    <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">QQ 公域机器人收到的消息常带 @bot 前缀；开启后把开头的 @机器人 剥掉再给下游，下游只看到指令本身。</div>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="at_remove" value="false" checked> 关闭（推荐）</label>
+      <label class="radio-item"><input type="radio" name="at_remove" value="true"> 开启（剥掉 @机器人）</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>add_at_group — 给「收到的」群消息文本前补一个 @机器人（接收侧）</label>
+    <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">下游插件必须看到 @ 才响应时开启；会在消息前拼一个 at(机器人) 再转发给下游。和 remove_at 相反。</div>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="at_add_group" value="false" checked> 关闭（推荐）</label>
+      <label class="radio-item"><input type="radio" name="at_add_group" value="true"> 开启（补 @机器人）</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>remove_bot_at_group — 隐藏「发出去的」群消息里的所有 at（发送侧）</label>
+    <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">gsk 发群消息时 at 段会转成 @昵称 文本（无昵称自动移除）；开启后连 @昵称 也一起删掉。和上面两个无关。</div>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="at_remove_bot" value="false" checked> 关闭（推荐）</label>
+      <label class="radio-item"><input type="radio" name="at_remove_bot" value="true"> 开启（连 @昵称 也隐藏）</label>
     </div>
   </div>
 </div>
@@ -176,6 +216,15 @@ function generate() {
   if (document.getElementById('intent_at').checked) intents.push('GroupATMessageEventHandler');
   if (document.getElementById('intent_full').checked) intents.push('GroupMessageEventHandler');
   if (document.getElementById('intent_c2c').checked) intents.push('C2CMessageEventHandler');
+  // 群聊管理事件
+  if (document.getElementById('intent_member_add').checked) intents.push('GroupMemberAddEventHandler');
+  if (document.getElementById('intent_member_remove').checked) intents.push('GroupMemberRemoveEventHandler');
+  if (document.getElementById('intent_join_request').checked) intents.push('GroupJoinRequestEventHandler');
+  if (document.getElementById('intent_subscribe_status').checked) intents.push('SubscribeMessageStatusEventHandler');
+  if (document.getElementById('intent_add_robot').checked) intents.push('GroupAddRobotEventHandler');
+  if (document.getElementById('intent_del_robot').checked) intents.push('GroupDelRobotEventHandler');
+  if (document.getElementById('intent_group_msg_reject').checked) intents.push('GroupMsgRejectHandler');
+  if (document.getElementById('intent_group_msg_receive').checked) intents.push('GroupMsgReceiveHandler');
   const intentLines = intents.length
     ? intents.map(i => '    - "' + i + '"').join('\n')
     : '    - "GroupATMessageEventHandler"';
@@ -183,6 +232,9 @@ function generate() {
   const require_mention = document.querySelector('input[name="require_mention"]:checked').value;
   const allow_proactive_msg = document.querySelector('input[name="allow_proactive_msg"]:checked').value;
   const log_level = document.querySelector('input[name="log_level"]:checked').value;
+  const at_add_group = document.querySelector('input[name="at_add_group"]:checked').value;
+  const at_remove = document.querySelector('input[name="at_remove"]:checked').value;
+  const at_remove_bot = document.querySelector('input[name="at_remove_bot"]:checked').value;
 
   const yml = `version: 1
 settings:
@@ -196,7 +248,7 @@ settings:
   shard_id: 0
   shard_num: 1
 
-  #事件订阅
+  #事件订阅 (群聊管理事件可全部开启; 前提: 群主在手机QQ客户端的群设置里给机器人配置相应权限)
   text_intent:
 ${intentLines}
 
@@ -236,9 +288,9 @@ ${intentLines}
 
   #指令魔法类（默认关闭白名单，避免拦截所有消息）
   remove_prefix : false
-  remove_at : false
-  remove_bot_at_group : true
-  add_at_group : false
+  remove_at : ${at_remove}             # 接收侧: 去掉"收到的"消息开头的@机器人(公域场景)
+  remove_bot_at_group : ${at_remove_bot}   # 发送侧: 隐藏"发出去的"群消息里的所有at(官方无真@, gsk转@昵称文本, 开启则连昵称也删)
+  add_at_group : ${at_add_group}       # 接收侧: 给"收到的"群消息文本前补@机器人(供必须见@才响应的下游)
   white_prefix_mode : false
   v_white_prefix_mode : false
   white_prefixs : [""]

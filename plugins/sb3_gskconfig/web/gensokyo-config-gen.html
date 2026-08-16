@@ -170,6 +170,23 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
   </div>
 </div>
 
+<div class="card">
+  <h2>⑤ 链接发送方式（消息里的 URL 怎么发）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ QQ官方机器人对消息里的链接有域名校验（陌生域名可能被拦截/不可点），gsk 提供两种规避方式，选一种即可。</div>
+  <div class="field">
+    <label>链接发送方式</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="link_mode" value="qr" checked onchange="updateServerDirState()"> 二维码模式（推荐）：链接转成二维码图片发出，无需域名/端口</label>
+      <label class="radio-item"><input type="radio" name="link_mode" value="short" onchange="updateServerDirState()"> 短链模式：链接转成「你的域名/url/xxx」短链（需填下面的域名 + QQ 后台校验域名）</label>
+      <label class="radio-item"><input type="radio" name="link_mode" value="raw" onchange="updateServerDirState()"> 不转换：原样发送（可能被官方拦截或不可点击）</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>你的域名 (server_dir) <span class="hint">短链模式才需要填，如 mc.example.com（不带 http://）</span></label>
+    <input type="text" id="server_dir" placeholder="一般无需填写" disabled style="opacity:.55;cursor:not-allowed">
+  </div>
+</div>
+
 <div class="actions">
   <button class="btn btn-primary" onclick="generate()">生成 config.yml</button>
   <button class="btn btn-secondary" onclick="downloadConfig()" id="btn_download" style="display:none">下载文件</button>
@@ -185,6 +202,18 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
 <script>
 let generatedConfig = '';
 
+// 链接方式与域名输入框联动: 仅短链模式可填, 其余灰度显示"一般无需填写"
+function updateServerDirState() {
+  const input = document.getElementById('server_dir');
+  const checked = document.querySelector('input[name="link_mode"]:checked');
+  const isShort = checked && checked.value === 'short';
+  input.disabled = !isShort;
+  input.placeholder = isShort ? '如 mc.example.com' : '一般无需填写';
+  input.style.opacity = isShort ? '1' : '.55';
+  input.style.cursor = isShort ? 'text' : 'not-allowed';
+}
+updateServerDirState();
+
 // iframe 规范：通过 postMessage 通知主系统（不用原生 alert）
 function showNotice(msg, type) {
     if (window !== window.top) {
@@ -199,6 +228,7 @@ function generate() {
   const uin = document.getElementById('uin').value.trim();
   const port = document.getElementById('port').value.trim();
   const ws_server_token = document.getElementById('ws_server_token').value.trim();
+  const server_dir = document.getElementById('server_dir').value.trim();
 
   const errs = [];
   if (!app_id) errs.push('应用ID');
@@ -235,6 +265,18 @@ function generate() {
   const at_add_group = document.querySelector('input[name="at_add_group"]:checked').value;
   const at_remove = document.querySelector('input[name="at_remove"]:checked').value;
   const at_remove_bot = document.querySelector('input[name="at_remove_bot"]:checked').value;
+  // 链接发送方式: qr=二维码 / short=短链 / raw=不转换
+  const link_mode = document.querySelector('input[name="link_mode"]:checked').value;
+  let transfer_url = 'false', url_to_qrimage = 'false', visible_ip = 'false';
+  if (link_mode === 'qr') {
+    transfer_url = 'true'; url_to_qrimage = 'true'; visible_ip = 'true';
+  } else if (link_mode === 'short') {
+    transfer_url = 'true';
+  }
+  if (link_mode === 'short' && !server_dir) {
+    showMsg('短链模式需要在"② 服务器连接"里填写你的域名 (server_dir)', false);
+    return;
+  }
 
   const yml = `version: 1
 settings:
@@ -261,7 +303,7 @@ ${intentLines}
   idmap_pro : false
 
   #服务器设置
-  server_dir: ""              # 纯文本群服互通不需要；发base64图需填公网IP/域名
+  server_dir: "${server_dir}"     # 短链模式需填你的公网域名(需QQ后台校验); 二维码模式可不填
   port: "${port}"
   backup_port : "5200"
   lotus: false
@@ -270,6 +312,12 @@ ${intentLines}
   lotus_without_uploadpic : false
   lotus_grpc : false
   lotus_grpc_port : 50051
+
+  #链接发送方式 (由"⑤ 链接发送方式"选择; 二维码模式无需域名)
+  transfer_url : ${transfer_url}
+  url_to_qrimage : ${url_to_qrimage}
+  visible_ip : ${visible_ip}
+  qr_size : 300
 
   #正向ws设置
   ws_server_path : "nil"

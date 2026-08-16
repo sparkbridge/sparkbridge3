@@ -46,6 +46,10 @@ class OneBotWSAdapter extends BaseAdapter {
         } else {
             ErrorLogger.error("请求发送时发生错误:", error);
         }
+        // [修复] 必须返回一个合法值: 原实现无 return, 导致所有 .catch(defaultErrorHandler)
+        // 的 API Promise 解析为 undefined, 插件 await 后 JSON5.parse(undefined) 直接崩溃
+        // (报 "JSON5: invalid character 'u' at 1:1")。返回空对象作为兜底(后盾), 惠及所有插件。
+        return {};
     }
 
     async connect() {

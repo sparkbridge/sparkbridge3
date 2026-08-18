@@ -260,7 +260,7 @@ async function executeActions(actions, pack, matchResult = []) {
                 case 'executeCommand': {
                     let parsedCmd = parseVariables(action.params, pack, actionContext);
                     let res = mc.runcmdEx(parsedCmd);
-                    actionContext.result = res.output || (res.success ? "执行成功" : "执行失败");
+                    actionContext.result = res.output.replace(/§[a-zA-Z0-9]/g, "") || (res.success ? "执行成功" : "执行失败");
                     break;
                 }
                 case 'replyImage': {
@@ -364,6 +364,15 @@ function reBuildRawMessage(message) {
         .join('');
 }
 
+function shouldReplyPermissionDenied(rule) {
+    if (!rule || !Array.isArray(rule.conditions)) return false;
+
+    return rule.conditions.some(cond =>
+        cond.field === 'userRole' &&
+        (cond.value === 'sparkadmin' || cond.value === 'admin' || cond.value === 'owner')
+    );
+}
+
 // ==========================================
 // 模块 D: 核心匹配引擎
 // ==========================================
@@ -385,6 +394,13 @@ spark.on('message.group.normal', async (pack) => {
 
             if (matchResult) {
                 if (!checkConditions(rule.conditions, pack)) {
+                    if (shouldReplyPermissionDenied(rule)) {
+                        try {
+                            await spark.QClient.sendGroupMsg(pack.group_id, '你没有权限');
+                        } catch (err) {
+                            logger.warn(`[正则模块] 权限不足提示发送失败: ${err.message || err}`);
+                        }
+                    }
                     continue;
                 }
 

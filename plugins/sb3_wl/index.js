@@ -3,14 +3,14 @@ const logger = spark.getLogger();
 
 
 const initconf = {
-    enable:true,
-    auto_add:true
+    enable: true,
+    auto_add: true
 }
 
-fileObj.initFile("config.json",initconf);
+fileObj.initFile("config.json", initconf);
 const config = JSON.parse(fileObj.read('config.json'));
 
-fileObj.initFile("wl.json",[]);
+fileObj.initFile("wl.json", []);
 const wl = JSON.parse(fileObj.read('wl.json'));
 
 spark.web.createConfig("sb3_wl")
@@ -27,32 +27,32 @@ spark.on("config.update.sb3_wl", (key, val) => {
 });
 
 
-function save_wl(){ 
-    fileObj.write('wl.json',JSON.stringify(wl));
+function save_wl() {
+    fileObj.write('wl.json', JSON.stringify(wl));
 }
 
-function set_xbox_by_qid(qid,xbox){ 
-    wl.push({qid,xbox});
+function set_xbox_by_qid(qid, xbox) {
+    wl.push({ qid, xbox });
     save_wl();
 }
 
-function get_xbox_by_qid(id){
-    return wl.find(x=>x.qid == id);
+function get_xbox_by_qid(id) {
+    return wl.find(x => x.qid == id);
 }
 
-function get_qid_by_xbox(xbox){ 
-    if(wl.find(x => x.xbox == xbox))
-        return wl.find(x=>x.xbox == xbox).qid;
+function get_qid_by_xbox(xbox) {
+    if (wl.find(x => x.xbox == xbox))
+        return wl.find(x => x.xbox == xbox).qid;
     else
         return undefined;
 }
 
-function xbox_exist(xbox){ 
-    return wl.find(x=>x.xbox == xbox) != undefined;
+function xbox_exist(xbox) {
+    return wl.find(x => x.xbox == xbox) != undefined;
 }
 
-function del_xbox_by_qid(qid){ 
-    wl.splice(wl.findIndex(x=>x.qid == qid),1);
+function del_xbox_by_qid(qid) {
+    wl.splice(wl.findIndex(x => x.qid == qid), 1);
     save_wl();
 }
 
@@ -76,18 +76,18 @@ const xbox = {
         }
         return false;
     },
-    remXboxByQid : function (id) {
+    remXboxByQid: function (id) {
         del_xbox_by_qid(id);
     },
     hasXbox: function (id) {
         return get_xbox_by_qid(id) != undefined;
     },
-    getQQByXbox : function (xbox) {
+    getQQByXbox: function (xbox) {
         return get_qid_by_xbox(xbox);
     },
-    remXboxByName : function (name) {
+    remXboxByName: function (name) {
         let qid = get_qid_by_xbox(name);
-        if(qid != undefined){
+        if (qid != undefined) {
             del_xbox_by_qid(qid);
         }
     }
@@ -105,53 +105,53 @@ spark.on('core.ready', () => {
 
             // 直接返回一个键值对对象！
             // console.log(params);
-            if(get_xbox_by_qid(pack.sender.user_id) != undefined){
+            if (get_xbox_by_qid(pack.sender.user_id) != undefined) {
                 return { xbox: get_xbox_by_qid(pack.sender.user_id).xbox };
-            }else{
+            } else {
                 return { xbox: "无" };
             }
         });
     }
 });
 
-if(config.enable){
+if (config.enable) {
     // console.log("已启用白名单绑定");
-    spark.on("message.group.normal",(e,reply)=>{
-        let {raw_message,group_id} = e;
+    spark.on("message.group.normal", (e, reply) => {
+        let { raw_message, group_id } = e;
         // console.log(e)
         // console.log(spark.env.get("main_group"))
-        if(group_id == spark.env.get("main_group")){ 
-            if(raw_message.startsWith("绑定白名单")){
+        if (group_id == spark.env.get("main_group")) {
+            if (raw_message.startsWith("绑定白名单")) {
                 if (get_xbox_by_qid(e.sender.user_id) == undefined) {
-                    if(raw_message.length < 7){
+                    if (raw_message.length < 7) {
                         reply("请输入正确的XboxID", true);
                         return;
                     }
                     let id = raw_message.substring(6);
-                    if(xbox_exist(id)){
+                    if (xbox_exist(id)) {
                         reply("该XboxID已绑定", true);
                         return;
                     }
 
-                    if(config.auto_add)
+                    if (config.auto_add)
                         mc.runcmd("whitelist add \"" + id + "\"");
                     set_xbox_by_qid(e.sender.user_id, id);
                     reply("绑定成功，你已绑定>" + id + "<", true);
-                }else{
+                } else {
                     // console.log(get_xbox_by_qid(e.sender.user_id))
                     reply("你已经绑定白名单");
                 }
-            }else if(raw_message == "解绑白名单"){
-                
+            } else if (raw_message == "解绑白名单") {
+
                 let usr_info = get_xbox_by_qid(e.sender.user_id);
-                if(usr_info){
+                if (usr_info) {
                     mc.runcmd("whitelist remove \"" + usr_info.xbox + "\"");
                     del_xbox_by_qid(e.sender.user_id);
                     reply("解绑成功", true);
-                }else{
+                } else {
                     reply("你未绑定任何白名单", true);
                 }
-                
+
             }
         }
     });

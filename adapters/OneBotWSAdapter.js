@@ -39,9 +39,9 @@ class OneBotWSAdapter extends BaseAdapter {
         this.logger = logger.getLogger('OneBotWSAdapter');
     }
 
-    defaultErrorHandler(error) {
+    defaultErrorHandler(error, api) {
         if (error.reason === 'timeout') {
-            ErrorLogger.warn("请求超时,此信息可能发送失败");
+            ErrorLogger.warn(`API 请求 ${api} 失败！`);
             // 这里可以做一些超时后的默认处理，比如重试等
         } else {
             ErrorLogger.error("请求发送时发生错误:", error);
@@ -190,7 +190,7 @@ class OneBotWSAdapter extends BaseAdapter {
 
 
 
-    
+
 
     // sparkbridge3/adapters/OneBotWSAdapter.js
     async sendGroupMsg(gid, msg) {
@@ -204,26 +204,30 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler);
+        }).catch(err => this.defaultErrorHandler(err, 'sendGroupMsg'));
     }
 
     sendPrivateMsg(uid, msg) {
         let tmp_id = uuid();
         msg = msgbuilder.format(msg);
-       this.sendWSPack(packbuilder.PrivateMessagePack(uid, msg, tmp_id));
-        return new Promise((res, rej) => {
-            this.once('packid_' + tmp_id, (data) => {
-                res(data);
-            });
-            setTimeout(() => {
-                rej({ reason: 'timeout' });
-            }, 1e3)
-        })
+        this.sendWSPack(packbuilder.PrivateMessagePack(uid, msg, tmp_id));
+        try {
+            return new Promise((res, rej) => {
+                this.once('packid_' + tmp_id, (data) => {
+                    res(data);
+                });
+                setTimeout(() => {
+                    rej({ reason: 'timeout' });
+                }, 1e3)
+            })
+        } catch (error) {
+            return this.defaultErrorHandler(error, 'sendPrivateMsg');
+        }
     }
 
     async sendGroupForwardMsg(gid, msg) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupForwardMessagePack(gid, msg, tmp_id));
+        this.sendWSPack(packbuilder.GroupForwardMessagePack(gid, msg, tmp_id));
         try {
             return await new Promise((res, rej) => {
                 this.once('packid_' + tmp_id, (data) => {
@@ -234,33 +238,33 @@ class OneBotWSAdapter extends BaseAdapter {
                 }, 10e3);
             });
         } catch (error) {
-            return this.defaultErrorHandler(error);
+            return this.defaultErrorHandler(error, 'sendGroupForwardMsg');
         }
     }
 
     sendGroupBan(gid, mid, d) {
-       this.sendWSPack(packbuilder.GroupBanPack(gid, mid, d));
+        this.sendWSPack(packbuilder.GroupBanPack(gid, mid, d));
     }
     deleteMsg(id) {
-       this.sendWSPack(packbuilder.DeleteMsgPack(id));
+        this.sendWSPack(packbuilder.DeleteMsgPack(id));
     }
 
     getGroupMemberList(gid) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupMemberListPack(gid, tmp_id));
+        this.sendWSPack(packbuilder.GroupMemberListPack(gid, tmp_id));
         return new Promise((res, rej) => {
-           this.once('packid_' + tmp_id, (data) => {
+            this.once('packid_' + tmp_id, (data) => {
                 res(data);
             });
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupMemberList'));
     }
 
     getGroupMemberInfo(gid, mid) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupMemberInfoPack(gid, mid, tmp_id));
+        this.sendWSPack(packbuilder.GroupMemberInfoPack(gid, mid, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -268,24 +272,24 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupMemberInfo'));
     }
 
     setGroupAddRequest(flag, sub_type, approve) {
-       this.sendWSPack(packbuilder.GroupRequestPack(flag, sub_type, approve));
+        this.sendWSPack(packbuilder.GroupRequestPack(flag, sub_type, approve));
     }
 
     setFriendAddRequest(flag, approve) {
-       this.sendWSPack(packbuilder.FriendRequestPack(flag, approve));
+        this.sendWSPack(packbuilder.FriendRequestPack(flag, approve));
     }
 
     sendLike(fid, times) {
-       this.sendWSPack(packbuilder.LikePack(fid, times));
+        this.sendWSPack(packbuilder.LikePack(fid, times));
     }
 
     getMsg(id) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GetMsgPack(id, tmp_id));
+        this.sendWSPack(packbuilder.GetMsgPack(id, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -293,7 +297,7 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getMsg'));
     }
 
     // sendGroupForwardMessage(gid, msg) {
@@ -312,7 +316,7 @@ class OneBotWSAdapter extends BaseAdapter {
     getGroupRootFiles(gid, fileCount = 50) {
         try {
             let tmp_id = uuid();
-           this.sendWSPack(packbuilder.GroupRootFilesPack(gid, tmp_id, fileCount));
+            this.sendWSPack(packbuilder.GroupRootFilesPack(gid, tmp_id, fileCount));
             return new Promise((res, rej) => {
                 this.once('packid_' + tmp_id, (data) => {
                     res(data);
@@ -322,24 +326,24 @@ class OneBotWSAdapter extends BaseAdapter {
                 }, 10e3);
             });
         } catch (error) {
-            return this.defaultErrorHandler(error);
+            return this.defaultErrorHandler(error, 'getGroupRootFiles');
         }
     }
 
     uploadGroupFile(gid, FileName, AsName, FolderID, uploadFile = true) {
-       this.sendWSPack(packbuilder.UploadGroupFilePack(gid, FileName, AsName, FolderID, uploadFile))
+        this.sendWSPack(packbuilder.UploadGroupFilePack(gid, FileName, AsName, FolderID, uploadFile))
     }
 
     deleteGroupFile(gid, fileId) {
-       this.sendWSPack(packbuilder.DeleteGroupFilePack(gid, fileId));
+        this.sendWSPack(packbuilder.DeleteGroupFilePack(gid, fileId));
     }
 
     createGroupFileFolder(gid, name) {
-       this.sendWSPack(packbuilder.CreateGroupFileFolderPack(gid, name));
+        this.sendWSPack(packbuilder.CreateGroupFileFolderPack(gid, name));
     }
 
     deleteGroupFileFolder(gid, folderId) {
-       this.sendWSPack(packbuilder.DeleteGroupFileFolderPack(gid, folderId));
+        this.sendWSPack(packbuilder.DeleteGroupFileFolderPack(gid, folderId));
     }
 
     getGroupFileSystemInfo(gid) {
@@ -352,7 +356,7 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupFileSystemInfo'));
     }
 
     getGroupFilesByFolder(gid, folderId, fileCount = 50) {
@@ -365,7 +369,7 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupFilesByFolder'));
     }
 
     getGroupFileUrl(gid, fileId) {
@@ -378,44 +382,44 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupFileUrl'));
     }
 
     uploadPrivateFile(uid, FileName, AsName, uploadFile = true) {
-       this.sendWSPack(packbuilder.UploadPrivateFilePack(uid, FileName, AsName, uploadFile));
+        this.sendWSPack(packbuilder.UploadPrivateFilePack(uid, FileName, AsName, uploadFile));
     }
 
     moveGroupFile(gid, fileId, currentParentDirectory, targetParentDirectory) {
-       this.sendWSPack(packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory));
+        this.sendWSPack(packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory));
     }
 
     transGroupFile(gid, fileId) {
-       this.sendWSPack(packbuilder.TransGroupFilePack(gid, fileId));
+        this.sendWSPack(packbuilder.TransGroupFilePack(gid, fileId));
     }
 
     renameGroupFile(gid, fileId, currentParentDirectory, newName) {
-       this.sendWSPack(packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName));
+        this.sendWSPack(packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName));
     }
 
     sendGroupWholeBan(gid, enable) {
-       this.sendWSPack(packbuilder.GroupWholeBanPack(gid, enable));
+        this.sendWSPack(packbuilder.GroupWholeBanPack(gid, enable));
     }
 
     setGroupKick(gid, mid, rej) {
-       this.sendWSPack(packbuilder.GroupKickPack(gid, mid, rej));
+        this.sendWSPack(packbuilder.GroupKickPack(gid, mid, rej));
     }
 
     setGroupLeave(gid, dismiss) {
-      this.sendWSPack(packbuilder.GroupLeavePack(gid, dismiss));
+        this.sendWSPack(packbuilder.GroupLeavePack(gid, dismiss));
     }
 
     setGroupName(gid, name) {
-       this.sendWSPack(packbuilder.GroupNamePack(gid, name));
+        this.sendWSPack(packbuilder.GroupNamePack(gid, name));
     }
 
     getStrangerInfo(sid, no_cache) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.StrangerInfoPack(sid, no_cache, tmp_id));
+        this.sendWSPack(packbuilder.StrangerInfoPack(sid, no_cache, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -423,12 +427,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getStrangerInfo'));
     }
 
     getFriendInfo(fid, no_cache) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.FriendInfoPack(fid, no_cache, tmp_id));
+        this.sendWSPack(packbuilder.FriendInfoPack(fid, no_cache, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -436,12 +440,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getFriendInfo'));
     }
 
     getGroupInfo(gid, no_cache) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupInfoPack(gid, no_cache, tmp_id));
+        this.sendWSPack(packbuilder.GroupInfoPack(gid, no_cache, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -449,12 +453,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupInfo'));
     }
 
     getFriendList() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.FriendListPack(tmp_id));
+        this.sendWSPack(packbuilder.FriendListPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -462,12 +466,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getFriendList'));
     }
 
     getGroupList() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupListPack(tmp_id));
+        this.sendWSPack(packbuilder.GroupListPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -475,12 +479,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupList'));
     }
 
     getGroupHonorInfo(gid, type) {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.GroupHonorInfoPack(gid, type, tmp_id));
+        this.sendWSPack(packbuilder.GroupHonorInfoPack(gid, type, tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -488,12 +492,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getGroupHonorInfo'));
     }
 
     getStatus() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.StatusPack(tmp_id));
+        this.sendWSPack(packbuilder.StatusPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -501,12 +505,12 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getStatus'));
     }
 
     getLoginInfo() {
         let tmp_id = uuid();
-       this.sendWSPack(packbuilder.LoginInfoPack(tmp_id));
+        this.sendWSPack(packbuilder.LoginInfoPack(tmp_id));
         return new Promise((res, rej) => {
             this.once('packid_' + tmp_id, (data) => {
                 res(data);
@@ -514,9 +518,9 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        })
+        }).catch(err => this.defaultErrorHandler(err, 'getLoginInfo'));
     }
-    getModelShow(){
+    getModelShow() {
         let tmp_id = uuid();
         this.sendWSPack(packbuilder.ModelShowPack(tmp_id));
         return new Promise((res, rej) => {
@@ -526,9 +530,9 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
+        }).catch(err => this.defaultErrorHandler(err, 'getModelShow'));
     }
-    setGroupCard(gid, mid, card){
+    setGroupCard(gid, mid, card) {
         let tmp_id = uuid();
         this.sendWSPack(packbuilder.GroupCardSet(gid, mid, card));
         return new Promise((res, rej) => {
@@ -538,8 +542,7 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        }).catch(this.defaultErrorHandler)
-
+        }).catch(err => this.defaultErrorHandler(err, 'setGroupCard'));
     }
     // 断开所有客户端
     disconnectAllClients() {

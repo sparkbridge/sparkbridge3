@@ -41,7 +41,7 @@ class OneBotWSAdapter extends BaseAdapter {
 
     defaultErrorHandler(error, api) {
         if (error.reason === 'timeout') {
-            ErrorLogger.warn(`请求超时,此信息可能发送失败：${api}`);
+            ErrorLogger.warn(`API 请求 ${api} 失败！`);
             // 这里可以做一些超时后的默认处理，比如重试等
         } else {
             ErrorLogger.error("请求发送时发生错误:", error);

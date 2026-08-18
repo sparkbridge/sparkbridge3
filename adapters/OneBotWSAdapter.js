@@ -211,14 +211,18 @@ class OneBotWSAdapter extends BaseAdapter {
         let tmp_id = uuid();
         msg = msgbuilder.format(msg);
         this.sendWSPack(packbuilder.PrivateMessagePack(uid, msg, tmp_id));
-        return new Promise((res, rej) => {
-            this.once('packid_' + tmp_id, (data) => {
-                res(data);
-            });
-            setTimeout(() => {
-                rej({ reason: 'timeout' });
-            }, 1e3)
-        })
+        try {
+            return new Promise((res, rej) => {
+                this.once('packid_' + tmp_id, (data) => {
+                    res(data);
+                });
+                setTimeout(() => {
+                    rej({ reason: 'timeout' });
+                }, 1e3)
+            })
+        } catch (error) {
+            return this.defaultErrorHandler(error, 'sendPrivateMsg');
+        }
     }
 
     async sendGroupForwardMsg(gid, msg) {
@@ -514,7 +518,7 @@ class OneBotWSAdapter extends BaseAdapter {
             setTimeout(() => {
                 rej({ reason: 'timeout' });
             }, 10e3);
-        })
+        }).catch(err => this.defaultErrorHandler(err, 'getLoginInfo'));
     }
     getModelShow() {
         let tmp_id = uuid();

@@ -14,7 +14,7 @@ fileObj.initFile("config.json", {
     join_format: "[玩家] %s 进服",
     leave_format: "[玩家] %s 退服",
     chat_to_group_format: "[玩家] %s: %s",
-    chat_to_server_format:"[群聊] %s: %s"
+    chat_to_server_format: "[群聊] %s: %s"
 })
 const conf = JSON.parse(fileObj.read("config.json"));
 
@@ -91,7 +91,7 @@ function formatMsg(msg) {
             case 'image':
                 return conf.image_format;
             case 'face':
-                return  conf.face_format;
+                return conf.face_format;
         }
     });
     return formattedMessages.join('');
@@ -100,7 +100,7 @@ function formatMsg(msg) {
 
 
 // 1. QQ -> MC 游戏内
-if(conf.chat_to_server_enable){
+if (conf.chat_to_server_enable) {
     spark.on('message.group.normal', (pack) => {
         // console.log(`[QQ -> MC] 收到消息: ${pack.raw_message}`);
         if (pack.group_id === TARGET_GROUP) {
@@ -116,7 +116,7 @@ if(conf.chat_to_server_enable){
 
 // 2. MC 游戏内 -> QQ
 // 监听游戏内的玩家聊天事件
-if(conf.chat_to_group_enable){
+if (conf.chat_to_group_enable) {
     mc.listen("onChat", (player, chatText) => {
         const playerName = player.realName;
         // const msg = text(`[游戏内] ${playerName}: ${chatText}`);
@@ -127,7 +127,7 @@ if(conf.chat_to_group_enable){
 }
 
 // 3. 玩家进退服通知
-if(conf.join_to_group_enable){
+if (conf.join_to_group_enable) {
     mc.listen("onJoin", (player) => {
         // console.log(conf.join_format)
         // console.log(replacePlaceholders(conf.join_format, player.realName))
@@ -135,7 +135,7 @@ if(conf.join_to_group_enable){
     });
 }
 
-if(conf.leave_to_group_enable){
+if (conf.leave_to_group_enable) {
     mc.listen("onLeft", (player) => {
         spark.QClient.sendGroupMsg(TARGET_GROUP, replacePlaceholders(conf.leave_format, player.realName));
     });

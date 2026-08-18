@@ -5,14 +5,17 @@ spark.on('core.ready', () => {
         logger.warn('sb3_api_exporter: LLSE 不支持导出');
         return;
     }
-    
+
     try {
         // ==================== 基础信息 ====================
         ll.exports(() => spark.env.get('version'), name_space, "getVersion");
         ll.exports(() => spark.env.get('main_group'), name_space, "getMainGroup");
         ll.exports(() => spark.env.get('admin_qq'), name_space, "getAdminQQ");
         ll.exports(() => spark.env.get('qid'), name_space, "getBotQQ");
-        
+
+        ll.exports((xbox) => spark.env.get('get_qid_by_xbox')(xbox), name_space, "getQidByXbox");
+        ll.exports((qid, xbox) => spark.env.get('set_xbox_by_qid')(qid, xbox), name_space, "setXboxByQid");
+
         // ==================== 消息发送 ====================
         // 群消息
         ll.exports((gid, msg) => spark.QClient.sendGroupMsg(gid, msg), name_space, "sendGroupMsg");
@@ -24,7 +27,7 @@ spark.on('core.ready', () => {
         ll.exports((id) => spark.QClient.deleteMsg(id), name_space, "deleteMsg");
         // 发送原始包
         ll.exports((pack) => spark.QClient.sendWSPack(pack), name_space, "sendWSPack");
-        
+
         // ==================== 群管理 ====================
         // 禁言
         ll.exports((gid, mid, duration) => spark.QClient.sendGroupBan(gid, mid, duration), name_space, "sendGroupBan");
@@ -54,7 +57,7 @@ spark.on('core.ready', () => {
         ll.exports((gid, file, name, folderId, uploadFile) => spark.QClient.uploadGroupFile(gid, file, name, folderId, uploadFile), name_space, "uploadGroupFile");
         // 上传私聊文件
         ll.exports((uid, file, name, uploadFile) => spark.QClient.uploadPrivateFile(uid, file, name, uploadFile), name_space, "uploadPrivateFile");
-        
+
         // ==================== 获取信息 ====================
         // 群成员列表
         ll.exports((gid) => spark.QClient.getGroupMemberList(gid), name_space, "getGroupMemberList");
@@ -88,7 +91,7 @@ spark.on('core.ready', () => {
         ll.exports((gid, fileId) => spark.QClient.getGroupFileUrl(gid, fileId), name_space, "getGroupFileUrl");
         // 获取机型显示
         ll.exports(() => spark.QClient.getModelShow(), name_space, "getModelShow");
-        
+
         // ==================== 其他功能 ====================
         // 点赞
         ll.exports((uid, times) => spark.QClient.sendLike(uid, times), name_space, "sendLike");
@@ -96,7 +99,7 @@ spark.on('core.ready', () => {
         ll.exports((flag, subType, approve) => spark.QClient.setGroupAddRequest(flag, subType, approve), name_space, "setGroupAddRequest");
         // 处理加好友请求
         ll.exports((flag, approve) => spark.QClient.setFriendAddRequest(flag, approve), name_space, "setFriendAddRequest");
-        
+
         // ==================== 消息构建器 ====================
         ll.exports((content) => spark.msgbuilder.text(content), name_space, "text");
         ll.exports((qq) => spark.msgbuilder.at(qq), name_space, "at");
@@ -108,7 +111,7 @@ spark.on('core.ready', () => {
         ll.exports((id) => spark.msgbuilder.reply(id), name_space, "reply");
         ll.exports((msg) => spark.msgbuilder.format(msg), name_space, "format");
         ll.exports(() => spark.msgbuilder.ForwardMsgBuilder(), name_space, "ForwardMsgBuilder");
-        
+
         // ==================== 包构建器 ====================
         ll.exports((group_id, user_id, id) => spark.packbuilder.GroupPokePack(group_id, user_id, id), name_space, "GroupPokePack");
         ll.exports((user_id, id) => spark.packbuilder.FriendPokePack(user_id, id), name_space, "FriendPokePack");
@@ -130,10 +133,10 @@ spark.on('core.ready', () => {
         ll.exports((gid, fileId, currentParentDirectory, targetParentDirectory) => spark.packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory), name_space, "MoveGroupFilePack");
         ll.exports((gid, fileId) => spark.packbuilder.TransGroupFilePack(gid, fileId), name_space, "TransGroupFilePack");
         ll.exports((gid, fileId, currentParentDirectory, newName) => spark.packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName), name_space, "RenameGroupFilePack");
-        
-        
+
+
         logger.info('✓ sb3_api_exporter: 成功导出全部 SparkAPI 函数');
-        
+
     } catch (e) {
         logger.error(`✗ 导出失败: ${e}`);
     }

@@ -260,7 +260,7 @@ async function executeActions(actions, pack, matchResult = []) {
                 case 'executeCommand': {
                     let parsedCmd = parseVariables(action.params, pack, actionContext);
                     let res = mc.runcmdEx(parsedCmd);
-                    actionContext.result = res.output || (res.success ? "执行成功" : "执行失败");
+                    actionContext.result = res.output.replace(/§[a-zA-Z0-9]/g, "") || (res.success ? "执行成功" : "执行失败");
                     break;
                 }
                 case 'replyImage': {

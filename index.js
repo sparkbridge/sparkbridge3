@@ -19,7 +19,7 @@ process.on('unhandledRejection', (reason, promise) => {
 let rootFileObj = new fhelper.FileObj('base');
 let rawConfig = rootFileObj.read('config.json');
 tracker.trackEvent("startup", { v: ME.version });
-tracker.trackPage("/","startup");
+tracker.trackPage("/", "startup");
 // 定义默认的核心与全局共享配置
 const defaultConfig = {
     target: "ws://127.0.0.1:3001",
@@ -121,9 +121,9 @@ core.on('core.ready', () => {
 // 监听 Web 前端修改了 base 配置的事件
 core.on("config.update.base", (key, newValue) => {
     // console.log(newValue);
-    
-    if(spark.debug) console.log(`核心配置 [${key}] 已更改为 ${newValue} ${typeof newValue}。`);
-    if(key == 'admin_qq'){
+
+    if (spark.debug) console.log(`核心配置 [${key}] 已更改为 ${newValue} ${typeof newValue}。`);
+    if (key == 'admin_qq') {
         // /* if(spark.debug)  */console.log('QQ号数组转换中...');
         const newQqList = newValue.map(qq => Number(qq));
         // console.log(newQqList)
@@ -153,7 +153,7 @@ core.start().then(() => {
     core.emit('core.ready');
 
     logger.info(`✨ SparkBridge3 启动完毕！当前核心版本: ${ME.version} ✨`);
-}).catch(e =>{console.log(e); logger.error("框架启动失败: ", e)});
+}).catch(e => { console.log(e); logger.error("框架启动失败: ", e) });
 
 // ==========================================
 // 7. 添加卸载ws （解决重载时连接问题）
@@ -161,12 +161,12 @@ core.start().then(() => {
 if (typeof ll !== 'undefined' && ll.onUnload) {
     ll.onUnload(() => {
         logger.info('SparkBridge3 正在卸载，清理 WebSocket 连接...');
-        
+
         // 断开所有客户端连接（强制它们重连）
         if (defaultAdapter && defaultAdapter.disconnectAllClients) {
             defaultAdapter.disconnectAllClients();
         }
-        
+
         // 关闭服务端
         if (defaultAdapter && defaultAdapter.client) {
             try {
@@ -177,7 +177,7 @@ if (typeof ll !== 'undefined' && ll.onUnload) {
                 logger.error(`✗ 关闭服务端时出错: ${e}`);
             }
         }
-        
+
         logger.info('SparkBridge3 卸载完成，客户端将在重载后重新连接...');
     });
 }

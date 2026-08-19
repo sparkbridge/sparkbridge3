@@ -364,15 +364,6 @@ function reBuildRawMessage(message) {
         .join('');
 }
 
-function shouldReplyPermissionDenied(rule) {
-    if (!rule || !Array.isArray(rule.conditions)) return false;
-
-    return rule.conditions.some(cond =>
-        cond.field === 'userRole' &&
-        (cond.value === 'sparkadmin' || cond.value === 'admin' || cond.value === 'owner')
-    );
-}
-
 // ==========================================
 // 模块 D: 核心匹配引擎
 // ==========================================
@@ -394,12 +385,10 @@ spark.on('message.group.normal', async (pack) => {
 
             if (matchResult) {
                 if (!checkConditions(rule.conditions, pack)) {
-                    if (shouldReplyPermissionDenied(rule)) {
-                        try {
-                            await spark.QClient.sendGroupMsg(pack.group_id, '你没有权限');
-                        } catch (err) {
-                            logger.warn(`[正则模块] 权限不足提示发送失败: ${err.message || err}`);
-                        }
+                    try {
+                        await spark.QClient.sendGroupMsg(pack.group_id, [at(pack.user_id), text(' 你没有权限')]);
+                    } catch (err) {
+                        logger.warn(`[正则模块] 权限不足提示发送失败: ${err.message || err}`);
                     }
                     continue;
                 }

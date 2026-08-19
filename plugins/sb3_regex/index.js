@@ -385,13 +385,10 @@ spark.on('message.group.normal', async (pack) => {
 
             if (matchResult) {
                 if (!checkConditions(rule.conditions, pack)) {
-                    const ADMINS = spark.env.get("admin_qq") || [];
-                    if (!ADMINS.includes(Number(pack.user_id))) {
-                        try {
-                            await spark.QClient.sendGroupMsg(pack.group_id, [at(pack.user_id), text(' 你没有权限')]);
-                        } catch (err) {
-                            logger.warn(`[正则模块] 权限不足提示发送失败: ${err.message || err}`);
-                        }
+                    try {
+                        await spark.QClient.sendGroupMsg(pack.group_id, [at(pack.user_id), text(' 你没有权限')]);
+                    } catch (err) {
+                        logger.warn(`[正则模块] 权限不足提示发送失败: ${err.message || err}`);
                     }
                     continue;
                 }

@@ -575,6 +575,22 @@
 - 返回值：OneBot 协议数据包
 - 返回值类型：Object
 
+## 聊天中继（配合 QuickJS SparkChatFix）
+
+这两个函数用于修复 LSE Node 引擎偶尔收不到 `onChat` 的问题，由 QJS 侧插件 `SparkChatFix.js` 调用，普通用户无需直接使用。
+
+### 转发聊天
+`relayChat(name, xuid, msg)`
+- 参数：
+  - name : `String` - 玩家真实名（`player.realName`）
+  - xuid : `String` - 玩家 XUID（`player.xuid`）
+  - msg : `String` - 聊天内容
+- 说明：把 QJS 侧收到的 `onChat` 补投给 spark 内部全部 onChat 回调；第一次被调用即自动判定 fix 在线，原生 onChat 路径让位。
+
+### 登记接入
+`registerChatFix()`
+- 说明：由 SparkChatFix 启动后调用，通知 spark"fix 已在线"，触发模式切换（幂等，可重复调用）。
+
 ## 使用示例
 
 ```javascript

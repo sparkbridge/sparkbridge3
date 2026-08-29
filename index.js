@@ -92,6 +92,14 @@ if (typeof mc !== 'undefined') {
     global.ll.import = ll.imports;
     global.ll.exports = ll.exports;
     ll.registerPlugin("sparkbridge3", "a modern qq bot system", [3, 0, 0]);
+
+    // ===== onChat 中继：配合 QJS SparkChatFix 补齐被 LSE 吞掉的聊天事件 =====
+    try {
+        require('./handles/chatrelay').patchMC(mc);
+        logger.info('✓ onChat 中继已启用（配合 plugins/SparkChatFix.js 使用）');
+    } catch (e) {
+        logger.warn(`onChat 中继安装失败，继续使用原生路径: ${e.message}`);
+    }
 } else {
     // 自动加载假 API，方便开发者在本地 PC 上开发测试插件
     require('./handles/fakeapi');

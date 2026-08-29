@@ -1,4 +1,5 @@
 const name_space = "SparkAPIEx"
+const chatrelay = require('../../handles/chatrelay');
 
 spark.on('core.ready', () => {
     if (typeof ll === 'undefined' || !ll.exports) {
@@ -133,6 +134,18 @@ spark.on('core.ready', () => {
         ll.exports((gid, fileId, currentParentDirectory, targetParentDirectory) => spark.packbuilder.MoveGroupFilePack(gid, fileId, currentParentDirectory, targetParentDirectory), name_space, "MoveGroupFilePack");
         ll.exports((gid, fileId) => spark.packbuilder.TransGroupFilePack(gid, fileId), name_space, "TransGroupFilePack");
         ll.exports((gid, fileId, currentParentDirectory, newName) => spark.packbuilder.RenameGroupFilePack(gid, fileId, currentParentDirectory, newName), name_space, "RenameGroupFilePack");
+
+        // ==================== 聊天中继（QuickJS SparkChatFix 调用） ====================
+        ll.exports((name, xuid, msg) => chatrelay.relayChat(name, xuid, msg), name_space, "relayChat");
+        let fixRegistered = false;
+        ll.exports(() => {
+            chatrelay.setFixActive(true);
+            if (!fixRegistered) {
+                fixRegistered = true;
+                logger.info('✓ SparkChatFix (QuickJS) 已接入 onChat 中继，原生 onChat 路径已让位');
+            }
+            return true;
+        }, name_space, "registerChatFix");
 
 
         logger.info('✓ sb3_api_exporter: 成功导出全部 SparkAPI 函数');

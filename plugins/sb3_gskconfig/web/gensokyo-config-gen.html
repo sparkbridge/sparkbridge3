@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Modified by DanielToyama on 2026-08-17 (Gensokyo-ForSpark fork) -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -187,6 +188,50 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
   </div>
 </div>
 
+<div class="card">
+  <h2>⑥ 维护通知（WS 全部掉线时的兜底回复）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ 当 Gensokyo 到应用端的 WS 连接全部失败时，收到消息会通过官方 API 回一条"维护中"文案。群聊/频道是<b>一对多</b>场景，已内置冷却防刷屏；私聊/C2C 是 <b>1 对 1</b>，每条都回。</div>
+  <div class="field">
+    <label>维护通知总开关 (downtime_message_enabled)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="downtime_message_enabled" value="true" checked> 开启（WS 全部掉线时按规则回复维护文案）</label>
+      <label class="radio-item"><input type="radio" name="downtime_message_enabled" value="false"> 关闭（完全不回复）</label>
+    </div>
+  </div>
+  <div class="field">
+    <label>冷却时间（分钟）(downtime_cooldown) <span class="hint">群聊@/频道@ 同一用户冷却期内最多回一次；0=不冷却；私聊/C2C 不受影响</span></label>
+    <input type="number" id="downtime_cooldown" value="10" min="0">
+  </div>
+  <div class="field">
+    <label>维护文案 (downtime_message) <span class="hint">留空=不发送（等同于关闭通知）</span></label>
+    <input type="text" id="downtime_message" placeholder="例如: 我正在维护中~请不要担心,维护结束就回来~维护时间:(1小时)">
+  </div>
+</div>
+
+<div class="card">
+  <h2>⑦ 假回复 FakeReply（官方协议不支持"引用"，改为文本伪造回复）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">QQ 官方机器人<b>不支持</b> OneBot v11 的 reply 引用段（<code>{"type":"reply","data":{"id":...}}</code>）。开启后，Gensokyo 会把这类消息<b>文本伪造</b>为：<br><code>回复 @昵称<br>————<br>被回复的那条消息原文<br>[本条消息内容]</code><br>—— 收到的每条消息都会按 message_id 持久化发送者昵称与原文（存于 <code>msgmap.db</code>，保留 7 天），代替真实引用让群里能看出"在回复谁"。查不到记录时跳过伪造，按普通消息发送。</div>
+  <div class="field">
+    <label>假回复开关 (fake_reply)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="fake_reply" value="true" checked> 开启（应用端发 reply 引用段时文本伪造回复）</label>
+      <label class="radio-item"><input type="radio" name="fake_reply" value="false"> 关闭（忽略 reply 段，按普通消息发送）</label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>⑧ 真实 At（Markdown）AtMarkdown（官方文本链 at 标签不渲染，改用 markdown 消息试真 at）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">官方文本链的 at 格式 <code>&lt;qqbot-at-user id="openid"/&gt;</code> 在<strong>纯文本</strong>消息里实测<strong>不渲染</strong>（显示原文）；频道 markdown 模板语法 <code>&lt;at id="openid"&gt;&lt;/at&gt;</code> 在群聊自定义 markdown 里实测<strong>同样显示原文</strong>（2026-08-19 实测）。其他官方开发者介绍：<strong>markdown 消息</strong>可渲染真实 at（2026/04/23 起自定义 markdown 已开放到所有机器人）。开启后，<strong>含 at 的群纯文本消息</strong>自动升级为 markdown 消息（msg_type=2），at 按文档"最新格式" <code>&lt;qqbot-at-user id="openid"/&gt;</code> 注入；带图/语音等富媒体消息、超长消息不升级（at 还原为 @昵称）。默认关闭，请先在测试群验证。</div>
+  <div class="field">
+    <label>真实 At（Markdown）开关 (at_markdown)</label>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="at_markdown" value="true" checked> 开启（含 at 的群文本消息升级为 markdown 消息发真 at，fakeReply 伪回复同步升级）</label>
+      <label class="radio-item"><input type="radio" name="at_markdown" value="false"> 关闭（维持 @昵称 文本）</label>
+    </div>
+  </div>
+</div>
+
 <div class="actions">
   <button class="btn btn-primary" onclick="generate()">生成 config.yml</button>
   <button class="btn btn-secondary" onclick="downloadConfig()" id="btn_download" style="display:none">下载文件</button>
@@ -260,6 +305,11 @@ function generate() {
     : '    - "GroupATMessageEventHandler"';
 
   const require_mention = document.querySelector('input[name="require_mention"]:checked').value;
+  const downtime_message_enabled = document.querySelector('input[name="downtime_message_enabled"]:checked').value;
+  const downtime_cooldown = document.getElementById('downtime_cooldown').value.trim() || '10';
+  const downtime_message = document.getElementById('downtime_message').value.trim();
+  const fake_reply = document.querySelector('input[name="fake_reply"]:checked').value;
+  const at_markdown = document.querySelector('input[name="at_markdown"]:checked').value;
   const allow_proactive_msg = document.querySelector('input[name="allow_proactive_msg"]:checked').value;
   const log_level = document.querySelector('input[name="log_level"]:checked').value;
   const at_add_group = document.querySelector('input[name="at_add_group"]:checked').value;
@@ -371,6 +421,17 @@ ${intentLines}
   send_delay : 300
   enableChangeWord : false
   defaultChangeWord : "*"
+
+  #维护通知 (WS全部掉线时的兜底回复; 群/频道一对多按冷却限流, 私聊/C2C每条都回)
+  downtime_message_enabled : ${downtime_message_enabled}
+  downtime_cooldown : ${downtime_cooldown}
+  downtime_message : "${downtime_message}"
+
+  #假回复 FakeReply (官方协议不支持reply引用段, 开启后文本伪造"回复 @昵称\n————\n原内容")
+  fake_reply : ${fake_reply}
+
+  #真实At Markdown AtMarkdown (官方文本链at标签不渲染; 开启后含at的群文本消息升级为markdown消息发真at, 实验功能默认关闭)
+  at_markdown : ${at_markdown}
 
   #发图相关
   oss_type : 0

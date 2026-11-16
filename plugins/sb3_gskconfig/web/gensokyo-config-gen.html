@@ -59,11 +59,13 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
 #msg { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 8px; display: none; }
 #msg.ok { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; display: block; }
 #msg.err { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+.guide { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 14px; padding: 12px 16px; font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
 </style>
 </head>
 <body>
 <h1>Gensokyo 配置生成</h1>
 <div class="subtitle">为群服互通场景简化 Gensokyo 配置 — 只填必要的，其余用推荐默认值。生成的 config.yml 替换 Gensokyo 目录下的同名文件后重启。</div>
+<div class="guide"><b>使用步骤：</b>填写 <b>① 机器人账号</b> 和 <b>② 服务器连接</b> 两个必填卡片 → 按需调整 ③~⑧ → 点「生成 config.yml」→ 下载或复制，保存为 Gensokyo 程序同目录的 <code>config.yml</code> → 重启程序。</div>
 
 <div class="card">
   <h2>① 机器人账号（必填）</h2>
@@ -72,11 +74,7 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
     <input type="number" id="app_id" placeholder="如 1904000000">
   </div>
   <div class="field">
-    <label>应用令牌 (token) <span class="hint">开放平台 → 开发设置</span></label>
-    <input type="text" id="token" placeholder="粘贴应用令牌">
-  </div>
-  <div class="field">
-    <label>客户端密钥 (client_secret) <span class="hint">开放平台 → 开发设置</span></label>
+    <label>客户端密钥 (client_secret) <span class="hint">开放平台 → 开发设置；用于换取 access_token，唯一鉴权凭据</span></label>
     <input type="text" id="client_secret" placeholder="粘贴客户端密钥">
   </div>
   <div class="field">
@@ -126,7 +124,7 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
     </div>
   </div>
   <div class="field">
-    <label>主动消息 (allow_proactive_msg)</label>
+    <label>主动消息 (allow_proactive_msg) <span class="hint">需官方主动消息权限，否则会报 40034105</span></label>
     <div class="radio-group">
       <label class="radio-item"><input type="radio" name="allow_proactive_msg" value="true" checked> 允许主动发送（推荐）</label>
       <label class="radio-item"><input type="radio" name="allow_proactive_msg" value="false"> 仅被动回复</label>
@@ -143,8 +141,8 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
 </div>
 
 <div class="card">
-  <h2>④ 群消息 @ 设置（建议全部保持关闭）</h2>
-  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ QQ官方机器人API不支持真正的 @（标签实测显示原文），at 只是文本显示。三个开关作用在<b>完全不同的环节</b>，一般都不需要开。</div>
+  <h2>④ 群消息 @ 设置（默认关闭，按下游插件需要开启）</h2>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ 官方对 @ 的支持分场景：群 <b>markdown 消息</b>可渲染真实 @（本工具 <code>at_markdown</code> 默认开启，含 at 的群文本会自动升级 markdown）；纯文本通道里的 <code>&lt;qqbot-at-user&gt;</code> 标签本身不渲染（关闭 at_markdown 时才降级为 @昵称）；2026-10-26 起纯文本支持 <code>&lt;qqbot-at-everyone /&gt;</code> @全体成员。<b>富媒体图片/语音/视频</b>（没有 markdown 发图条件时走的通道）不支持 at 标签，适配层会自动降级为文本，无法真 @。下面三个开关默认关闭，但作用在<b>完全不同的环节</b>，请按下游插件行为选择。</div>
   <div class="field">
     <label>remove_at — 去掉「收到的」消息开头的 @机器人（接收侧）</label>
     <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">QQ 公域机器人收到的消息常带 @bot 前缀；开启后把开头的 @机器人 剥掉再给下游，下游只看到指令本身。</div>
@@ -162,24 +160,25 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
     </div>
   </div>
   <div class="field">
-    <label>remove_bot_at_group — 隐藏「发出去的」群消息里的所有 at（发送侧）</label>
-    <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">gsk 发群消息时 at 段会转成 @昵称 文本（无昵称自动移除）；开启后连 @昵称 也一起删掉。和上面两个无关。</div>
+    <label>remove_bot_at_group — 删除「发出去的」群消息里的普通成员 at（发送侧）</label>
+    <div style="font-size:12px;color:#64748b;display:block;margin:-2px 0 8px;line-height:1.5">at_markdown 开启时删除真实 at；关闭时删除 @昵称 文本；@全体成员 不受影响。和上面两个开关无关。</div>
     <div class="radio-group">
-      <label class="radio-item"><input type="radio" name="at_remove_bot" value="false" checked> 关闭（推荐）</label>
-      <label class="radio-item"><input type="radio" name="at_remove_bot" value="true"> 开启（连 @昵称 也隐藏）</label>
+      <label class="radio-item"><input type="radio" name="at_remove_bot" value="false" checked> 关闭（保留 at）</label>
+      <label class="radio-item"><input type="radio" name="at_remove_bot" value="true"> 开启（删除普通成员 at）</label>
     </div>
   </div>
 </div>
 
 <div class="card">
   <h2>⑤ 链接发送方式（消息里的 URL 怎么发）</h2>
-  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ QQ官方机器人对消息里的链接有域名校验（陌生域名可能被拦截/不可点），gsk 提供两种规避方式，选一种即可。</div>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">⚠️ QQ官方机器人对消息里的链接有域名校验（陌生域名可能被拦截/不可点），gsk 提供多种规避方式，选一种即可。</div>
   <div class="field">
     <label>链接发送方式</label>
     <div class="radio-group">
       <label class="radio-item"><input type="radio" name="link_mode" value="qr" checked onchange="updateServerDirState()"> 二维码模式（推荐）：链接转成二维码图片发出，无需域名/端口</label>
       <label class="radio-item"><input type="radio" name="link_mode" value="short" onchange="updateServerDirState()"> 短链模式：链接转成「你的域名/url/xxx」短链（需填下面的域名 + QQ 后台校验域名）</label>
       <label class="radio-item"><input type="radio" name="link_mode" value="raw" onchange="updateServerDirState()"> 不转换：原样发送（可能被官方拦截或不可点击）</label>
+      <label class="radio-item"><input type="radio" name="link_mode" value="dot" onchange="updateServerDirState()"> 点号替换（回退）：链接中的 . 替换为 ·，避免域名校验/拦截</label>
     </div>
   </div>
   <div class="field">
@@ -222,7 +221,7 @@ h1 { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
 
 <div class="card">
   <h2>⑧ 真实 At（Markdown）AtMarkdown（官方文本链 at 标签不渲染，改用 markdown 消息试真 at）</h2>
-  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">官方文本链的 at 格式 <code>&lt;qqbot-at-user id="openid"/&gt;</code> 在<strong>纯文本</strong>消息里实测<strong>不渲染</strong>（显示原文）；频道 markdown 模板语法 <code>&lt;at id="openid"&gt;&lt;/at&gt;</code> 在群聊自定义 markdown 里实测<strong>同样显示原文</strong>（2026-08-19 实测）。其他官方开发者介绍：<strong>markdown 消息</strong>可渲染真实 at（2026/04/23 起自定义 markdown 已开放到所有机器人）。开启后，<strong>含 at 的群纯文本消息</strong>自动升级为 markdown 消息（msg_type=2），at 按文档"最新格式" <code>&lt;qqbot-at-user id="openid"/&gt;</code> 注入；带图/语音等富媒体消息、超长消息不升级（at 还原为 @昵称）。默认关闭，请先在测试群验证。</div>
+  <div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-bottom:14px">官方文本链的 at 格式 <code>&lt;qqbot-at-user id="openid"/&gt;</code> 在<strong>纯文本</strong>消息里实测<strong>不渲染</strong>（显示原文）；频道 markdown 模板语法 <code>&lt;at id="openid"&gt;&lt;/at&gt;</code> 在群聊自定义 markdown 里实测<strong>同样显示原文</strong>（2026-08-19 实测）。其他官方开发者介绍：<strong>markdown 消息</strong>可渲染真实 at（2026/04/23 起自定义 markdown 已开放到所有机器人）。开启后，<strong>含 at 的群纯文本消息</strong>自动升级为 markdown 消息（msg_type=2），at 按文档"最新格式" <code>&lt;qqbot-at-user id="openid"/&gt;</code> 注入；带图/语音等富媒体消息、超长消息不升级（at 还原为 @昵称）。<strong>默认开启</strong>，建议先在测试群验证；不需要可在这里关闭。</div>
   <div class="field">
     <label>真实 At（Markdown）开关 (at_markdown)</label>
     <div class="radio-group">
@@ -266,9 +265,17 @@ function showNotice(msg, type) {
     }
 }
 
+// YAML 双引号字符串转义: 防止 token/密钥/维护文案里的引号、反斜杠、换行导致生成的 config.yml 格式错误
+function yamlq(v) {
+  return '"' + String(v == null ? '' : v)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/\t/g, '\\t') + '"';
+}
+
 function generate() {
   const app_id = document.getElementById('app_id').value.trim();
-  const token = document.getElementById('token').value.trim();
   const client_secret = document.getElementById('client_secret').value.trim();
   const uin = document.getElementById('uin').value.trim();
   const port = document.getElementById('port').value.trim();
@@ -277,9 +284,10 @@ function generate() {
 
   const errs = [];
   if (!app_id) errs.push('应用ID');
-  if (!token) errs.push('应用令牌');
+  else if (!/^\d+$/.test(app_id)) errs.push('应用ID(纯数字)');
   if (!client_secret) errs.push('客户端密钥');
   if (!uin) errs.push('机器人QQ号');
+  else if (!/^\d+$/.test(uin)) errs.push('机器人QQ号(纯数字)');
   if (!port) errs.push('监听端口');
   if (!ws_server_token) errs.push('正向WS令牌');
   if (errs.length) {
@@ -317,14 +325,16 @@ function generate() {
   const at_remove_bot = document.querySelector('input[name="at_remove_bot"]:checked').value;
   // 链接发送方式: qr=二维码 / short=短链 / raw=不转换
   const link_mode = document.querySelector('input[name="link_mode"]:checked').value;
-  let transfer_url = 'false', url_to_qrimage = 'false', visible_ip = 'false';
+  let transfer_url = 'false', url_to_qrimage = 'false', visible_ip = 'false', url_dot_fallback = 'false';
   if (link_mode === 'qr') {
     transfer_url = 'true'; url_to_qrimage = 'true'; visible_ip = 'true';
   } else if (link_mode === 'short') {
     transfer_url = 'true';
+  } else if (link_mode === 'dot') {
+    url_dot_fallback = 'true';
   }
   if (link_mode === 'short' && !server_dir) {
-    showMsg('短链模式需要在"② 服务器连接"里填写你的域名 (server_dir)', false);
+    showMsg('短链模式需要在"⑤ 链接发送方式"里填写你的域名 (server_dir)', false);
     return;
   }
 
@@ -334,8 +344,7 @@ settings:
   app_id: ${app_id}
   uin : ${uin}
   use_uin : false
-  token: "${token}"
-  client_secret: "${client_secret}"
+  client_secret: ${yamlq(client_secret)}
   shard_count: 1
   shard_id: 0
   shard_num: 1
@@ -353,8 +362,8 @@ ${intentLines}
   idmap_pro : false
 
   #服务器设置
-  server_dir: "${server_dir}"     # 短链模式需填你的公网域名(需QQ后台校验); 二维码模式可不填
-  port: "${port}"
+  server_dir: ${yamlq(server_dir)}     # 短链模式需填你的公网域名(需QQ后台校验); 二维码模式可不填
+  port: ${yamlq(port)}
   backup_port : "5200"
   lotus: false
   lotus_password : ""
@@ -367,12 +376,13 @@ ${intentLines}
   transfer_url : ${transfer_url}
   url_to_qrimage : ${url_to_qrimage}
   visible_ip : ${visible_ip}
+  url_dot_fallback : ${url_dot_fallback}
   qr_size : 300
 
   #正向ws设置
   ws_server_path : "nil"
   enable_ws_server: true
-  ws_server_token : "${ws_server_token}"
+  ws_server_token : ${yamlq(ws_server_token)}
 
   #日志类
   developer_log : true
@@ -387,7 +397,7 @@ ${intentLines}
   #指令魔法类（默认关闭白名单，避免拦截所有消息）
   remove_prefix : false
   remove_at : ${at_remove}             # 接收侧: 去掉"收到的"消息开头的@机器人(公域场景)
-  remove_bot_at_group : ${at_remove_bot}   # 发送侧: 隐藏"发出去的"群消息里的所有at(官方无真@, gsk转@昵称文本, 开启则连昵称也删)
+  remove_bot_at_group : ${at_remove_bot}   # 发送侧: 删除发出去的群消息里的普通成员at(at_markdown开启时删真at,关闭时删@昵称文本); @全体成员不受影响
   add_at_group : ${at_add_group}       # 接收侧: 给"收到的"群消息文本前补@机器人(供必须见@才响应的下游)
   white_prefix_mode : false
   v_white_prefix_mode : false
@@ -425,12 +435,12 @@ ${intentLines}
   #维护通知 (WS全部掉线时的兜底回复; 群/频道一对多按冷却限流, 私聊/C2C每条都回)
   downtime_message_enabled : ${downtime_message_enabled}
   downtime_cooldown : ${downtime_cooldown}
-  downtime_message : "${downtime_message}"
+  downtime_message : ${yamlq(downtime_message)}
 
-  #假回复 FakeReply (官方协议不支持reply引用段, 开启后文本伪造"回复 @昵称\n————\n原内容")
+  #假回复 FakeReply (官方协议不支持reply引用段, 开启后文本伪造"回复 @昵称 / ———— / 原内容")
   fake_reply : ${fake_reply}
 
-  #真实At Markdown AtMarkdown (官方文本链at标签不渲染; 开启后含at的群文本消息升级为markdown消息发真at, 实验功能默认关闭)
+  #真实At Markdown AtMarkdown (官方文本链at标签不渲染; 开启后含at的群文本消息升级为markdown消息发真at, 默认开启, 可在上方关闭)
   at_markdown : ${at_markdown}
 
   #发图相关
